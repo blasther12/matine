@@ -145,7 +145,7 @@ async def test_cors_preflight_allows_only_configured_read_route(client: AsyncCli
 
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
-    assert response.headers["access-control-allow-methods"] == "GET"
+    assert response.headers["access-control-allow-methods"] == "GET, POST, PATCH, DELETE"
 
 
 @pytest.mark.asyncio
@@ -237,6 +237,8 @@ async def test_hsts_is_only_emitted_for_production_https() -> None:
         cors_origins_csv="https://web.example.com",
         trusted_hosts_csv="api.example.com",
         tmdb_api_key="synthetic-test-token",
+        supabase_url="https://project.supabase.co",
+        supabase_anon_key="synthetic-anon-key",
     )
     production_app = create_app(settings)
     transport = ASGITransport(app=production_app)
@@ -259,6 +261,8 @@ async def test_production_disables_interactive_api_docs() -> None:
         cors_origins_csv="https://web.example.com",
         trusted_hosts_csv="api.example.com",
         tmdb_api_key="synthetic-test-token",
+        supabase_url="https://project.supabase.co",
+        supabase_anon_key="synthetic-anon-key",
     )
     production_app = create_app(settings)
     transport = ASGITransport(app=production_app)

@@ -1,9 +1,9 @@
 # Data map and retention
 
-This inventory describes Phase 0 and the planned Phase 1 catalog integration.
-Neither phase creates accounts or stores personal profiles, watch history,
-ratings, reviews, lists, streaming preferences, social graphs, taste profiles,
-or authentication data.
+This inventory describes Phases 0–2. Phase 2 introduces the minimum application
+profile linked to Supabase Auth. It does not store e-mail, password material,
+tokens, watch history, ratings, reviews, lists, streaming preferences, social
+graphs, or taste profiles.
 
 ## Data flows
 
@@ -41,6 +41,10 @@ identifiers, or unrelated request metadata to TMDB.
 | Migration version and database health metadata | 0, schema management | Internal | PostgreSQL | Life of the environment | Backend and operators |
 | Synthetic test fixtures | 0/1, verification | Synthetic | Test process or dedicated test database | Delete at test completion; failed-run artifacts at most 7 days | Developers and CI |
 | Source, test output, and CI logs | 0, build verification | Internal | Repository host/CI | Use shortest host setting; target at most 30 days and publish no secret-bearing artifacts | Repository maintainers |
+| Supabase auth user UUID | 2, bind a validated identity to one internal profile | Private identifier | PostgreSQL `users.auth_user_id` | Account lifetime; cascade deletion with the Supabase identity | Profile owner and backend only |
+| Internal profile UUID | 2, stable ownership key without exposing the auth provider ID | Private identifier | PostgreSQL `users.id` | Account lifetime | Profile owner and backend only |
+| Username and display name | 2, user-selected profile identity | Private by default | PostgreSQL `users` | Account lifetime; user-controlled deletion arrives before social publication | Profile owner and backend only |
+| Avatar URL | 2, optional profile presentation | Private by default | PostgreSQL `users`; image bytes are not copied | Account lifetime or until changed | Profile owner and backend only |
 
 Routes must be logged as templates such as `/movies/{tmdb_id}`, not raw URLs.
 Query strings, request and response bodies, IP addresses, cookies,
@@ -66,14 +70,12 @@ and be removed by a bounded cleanup job within 24 hours.
 
 ## Browser and third parties
 
-Phase 0/1 sets no authentication cookie and requires no `localStorage`,
-`sessionStorage`, or IndexedDB identity. Do not add analytics, advertising
-pixels, fingerprinting, third-party cookies, or hidden tracking. Poster and
-backdrop delivery should disclose only the minimum catalog request required by
-the selected TMDB image delivery approach.
-
-Supabase variables are placeholders for Phase 2. Phase 0/1 must not send data to
-Supabase or use its service-role credential.
+Phase 2 uses secure Supabase SSR session cookies and does not store identity in
+`localStorage`, `sessionStorage`, or IndexedDB. Do not add analytics,
+advertising pixels, fingerprinting, third-party cookies, or hidden tracking.
+The service-role credential is not used for normal user requests; the backend
+validates the bearer token with the anon/publishable credential and derives
+ownership from the validated Supabase UUID.
 
 ## Local persistence and deletion
 

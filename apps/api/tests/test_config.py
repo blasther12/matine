@@ -41,6 +41,8 @@ def test_vercel_system_hosts_are_used_as_exact_production_allowlists() -> None:
         vercel_project_production_url="matine-fawn.vercel.app",
         database_url="postgresql://api:password@db.example.com:6543/app?sslmode=require",
         tmdb_api_key="synthetic-test-token",
+        supabase_url="https://project.supabase.co",
+        supabase_anon_key="synthetic-anon-key",
     )
 
     assert settings.runtime_environment == "production"
@@ -75,6 +77,8 @@ def test_unsafe_production_settings_fail_closed(
         "database_url": _PRODUCTION_DATABASE_URL,
         "cors_origins_csv": "https://web.example.com",
         "trusted_hosts_csv": "api.example.com",
+        "supabase_url": "https://project.supabase.co",
+        "supabase_anon_key": "synthetic-anon-key",
     }
     values.update(overrides)
 

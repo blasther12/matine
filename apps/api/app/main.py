@@ -12,6 +12,7 @@ from app.core.rate_limit import InMemoryRateLimiter
 from app.core.security import RequestSecurityMiddleware
 from app.modules.health.router import router as health_router
 from app.modules.movies.router import router as movies_router
+from app.modules.users.router import router as users_router
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -46,13 +47,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     install_error_handlers(app)
     app.include_router(health_router)
     app.include_router(movies_router)
+    app.include_router(users_router)
 
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(resolved_settings.cors_origins),
         allow_credentials=False,
-        allow_methods=["GET"],
-        allow_headers=["Accept", "Content-Type", "X-Request-ID"],
+        allow_methods=["GET", "POST", "PATCH", "DELETE"],
+        allow_headers=["Accept", "Authorization", "Content-Type", "X-Request-ID"],
         expose_headers=["X-Request-ID"],
         max_age=600,
     )

@@ -1,4 +1,7 @@
+import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
+
+import { supabaseConfig } from "@/lib/supabase/config";
 
 function createContentSecurityPolicy(nonce: string): string {
   const isDevelopment = process.env.NODE_ENV === "development";
@@ -25,7 +28,7 @@ function createContentSecurityPolicy(nonce: string): string {
   ].join("; ");
 }
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const contentSecurityPolicy = createContentSecurityPolicy(nonce);
   const requestHeaders = new Headers(request.headers);
@@ -40,6 +43,20 @@ export function proxy(request: NextRequest) {
   });
 
   response.headers.set("Content-Security-Policy", contentSecurityPolicy);
+
+  const { url, anonKey } = supabaseConfig();
+  const supabase = createServerClient(url, anonKey, {
+    cookies: {
+      getAll: () => request.cookies.getAll(),
+      setAll: (cookiesToSet) => {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, options),
+        );
+      },
+    },
+  });
+  await supabase.auth.getUser();
 
   return response;
 }

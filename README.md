@@ -18,12 +18,12 @@
 
 Matinê é uma plataforma cinematográfica pessoal e social construída de forma
 incremental, com privacidade por padrão. A entrega atual oferece catálogo
-público do TMDB; identidade, biblioteca e recursos sociais só entram depois de
-uma base de autorização deny-by-default.
+público do TMDB e a base de identidade Supabase com autorização deny-by-default.
 
 > [!IMPORTANT]
-> O projeto não coleta dados pessoais, histórico ou preferências nas Fases 0 e
-> 1. Busca não é persistida nem registrada.
+> A busca não é persistida nem registrada. A Fase 2 guarda somente o perfil
+> mínimo escolhido pelo usuário; e-mail e senha permanecem exclusivamente no
+> Supabase Auth.
 
 ## Por que Matinê?
 
@@ -39,8 +39,8 @@ uma base de autorização deny-by-default.
   Docker, testes, CI e baseline de segurança.
 - [x] **Fase 1 — TMDB:** busca, detalhes, créditos, trailers e disponibilidade
   no Brasil, com cache somente de metadados públicos.
-- [ ] **Fase 2 — Identidade:** Supabase Auth, `/me`, autorização no backend e
-  RLS deny-by-default.
+- [x] **Fase 2 — Identidade:** Supabase Auth SSR, `/me`, autorização no backend,
+  perfil mínimo e RLS deny-by-default.
 - [ ] **Fases seguintes:** biblioteca pessoal, diário, reviews, listas,
   círculos e Movie Night.
 
@@ -117,6 +117,8 @@ pnpm dev
 | `GET` | `/movies/{tmdb_id}` | cache público de 24h |
 | `GET` | `/movies/{tmdb_id}/credits` | cache público de 7 dias |
 | `GET` | `/movies/{tmdb_id}/providers` | cache público de 6h |
+| `GET` | `/me` | perfil privado do token autenticado |
+| `POST` | `/me` | cria o perfil privado; proprietário vem do token |
 
 ## Qualidade e entrega
 

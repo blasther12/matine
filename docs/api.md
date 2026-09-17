@@ -1,7 +1,7 @@
-# Public API: Phase 1
+# API: Phase 2
 
-All current routes are public, read-only, JSON-only, and collect no account or
-profile data. Errors use a stable shape:
+Catalog routes are public and read-only. Account routes are private, JSON-only,
+and require a validated Supabase bearer token. Errors use a stable shape:
 
 ```json
 {"error":"validation_error","request_id":"server-generated-uuid"}
@@ -16,6 +16,13 @@ profile data. Errors use a stable shape:
 | `GET /movies/{tmdb_id}` | positive int32 | normalized movie details and safe trailer key | public cache, 24h |
 | `GET /movies/{tmdb_id}/credits` | positive int32 | first 20 cast and bounded crew | public cache, 7d |
 | `GET /movies/{tmdb_id}/providers` | positive int32 | BR streaming/free/ads/rent/buy groups | public cache, 6h |
+| `GET /me` | Supabase bearer token | authenticated user's explicit public-profile schema | private profile row |
+| `POST /me` | bearer token, username and display name | creates the token owner's profile | private profile row |
+
+Catalog routes remain public and read-only. `/me` requires a bearer token that
+the API validates against Supabase Auth. Ownership is derived exclusively from
+that validated identity; a client-supplied `user_id` is rejected. Neither route
+returns `auth_user_id`, e-mail, password data, tokens, or ORM objects.
 
 The API never returns the TMDB credential, raw upstream payload, ORM object, or
 arbitrary upstream URL. Image values are validated TMDB paths; the web client

@@ -151,12 +151,18 @@ export default async function HomePage() {
             >
               Privacidade
             </a>
-            <Badge tone="accent">Fase 1</Badge>
+            <Link
+              className="text-sm text-zinc-400 transition hover:text-zinc-100 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-300"
+              href="/login"
+            >
+              Entrar
+            </Link>
+            <Badge tone="accent">Fase 2</Badge>
           </nav>
 
-          <Badge className="sm:hidden" tone="accent">
-            Fase 1
-          </Badge>
+          <Link className="sm:hidden" href="/login">
+            <Badge tone="accent">Entrar</Badge>
+          </Link>
         </div>
       </header>
 

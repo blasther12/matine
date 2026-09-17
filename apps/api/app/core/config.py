@@ -141,6 +141,16 @@ class Settings(BaseSettings):
         validation_alias="TMDB_API_KEY",
         repr=False,
     )
+    supabase_url: str = Field(
+        default="",
+        validation_alias=AliasChoices("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"),
+        repr=False,
+    )
+    supabase_anon_key: SecretStr = Field(
+        default=SecretStr(""),
+        validation_alias=AliasChoices("SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+        repr=False,
+    )
     rate_limit_requests: int = Field(
         default=30,
         ge=1,
@@ -227,6 +237,17 @@ class Settings(BaseSettings):
         return self.tmdb_api_key.get_secret_value()
 
     @property
+    def supabase_origin(self) -> str:
+        value = self.supabase_url.rstrip("/")
+        if not value:
+            return ""
+        return _validated_origin(value, production=self.is_production)
+
+    @property
+    def supabase_public_key(self) -> str:
+        return self.supabase_anon_key.get_secret_value()
+
+    @property
     def is_production(self) -> bool:
         return self.app_env == "production" or self.vercel_env == "production"
 
@@ -246,6 +267,8 @@ class Settings(BaseSettings):
                 raise ValueError("production must not use the development database URL")
             if not self.tmdb_token:
                 raise ValueError("TMDB_API_KEY is required in production")
+            if not self.supabase_origin or not self.supabase_public_key:
+                raise ValueError("Supabase URL and anon key are required in production")
             if any(_is_local_host(host) for host in hosts):
                 raise ValueError("production TRUSTED_HOSTS must not contain local hosts")
             if any(_is_local_host(urlsplit(origin).hostname) for origin in origins):
