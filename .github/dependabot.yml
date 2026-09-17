@@ -11,6 +11,15 @@ updates:
       - dependency-name: "typescript"
         versions:
           - ">=7.0.0 <7.1.0"
+      # eslint-plugin-react pulled by Next.js is not compatible with ESLint 10 yet.
+      - dependency-name: "eslint"
+        update-types:
+          - "version-update:semver-major"
+      # Production/CI runtime is Node 24. Keep Node typings at or below that
+      # runtime generation so type-checking cannot approve Node 25/26-only APIs.
+      - dependency-name: "@types/node"
+        versions:
+          - ">=25"
 
   - package-ecosystem: "pip"
     directory: "/apps/api"
