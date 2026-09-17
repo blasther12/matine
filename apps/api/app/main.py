@@ -11,6 +11,7 @@ from app.core.logging import configure_logging
 from app.core.rate_limit import InMemoryRateLimiter
 from app.core.security import RequestSecurityMiddleware
 from app.modules.health.router import router as health_router
+from app.modules.library.router import router as library_router
 from app.modules.movies.router import router as movies_router
 from app.modules.users.router import router as users_router
 
@@ -30,7 +31,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(
         title="Matinê API",
-        version="0.2.0",
+        version="0.3.0",
         debug=resolved_settings.debug,
         docs_url=None,
         redoc_url=None,
@@ -48,6 +49,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(health_router)
     app.include_router(movies_router)
     app.include_router(users_router)
+    app.include_router(library_router)
 
     app.add_middleware(
         CORSMiddleware,

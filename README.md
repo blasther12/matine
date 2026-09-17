@@ -18,12 +18,13 @@
 
 Matinê é uma plataforma cinematográfica pessoal e social construída de forma
 incremental, com privacidade por padrão. A entrega atual oferece catálogo
-público do TMDB e a base de identidade Supabase com autorização deny-by-default.
+público do TMDB, identidade Supabase e biblioteca pessoal com autorização
+deny-by-default.
 
 > [!IMPORTANT]
-> A busca não é persistida nem registrada. A Fase 2 guarda somente o perfil
-> mínimo escolhido pelo usuário; e-mail e senha permanecem exclusivamente no
-> Supabase Auth.
+> A busca não é persistida nem registrada. A Fase 3 guarda apenas o estado que
+> o usuário escolheu para cada filme; e-mail e senha permanecem exclusivamente
+> no Supabase Auth, e a biblioteca é privada por padrão.
 
 ## Por que Matinê?
 
@@ -41,7 +42,9 @@ público do TMDB e a base de identidade Supabase com autorização deny-by-defau
   no Brasil, com cache somente de metadados públicos.
 - [x] **Fase 2 — Identidade:** Supabase Auth SSR, `/me`, autorização no backend,
   perfil mínimo e RLS deny-by-default.
-- [ ] **Fases seguintes:** biblioteca pessoal, diário, reviews, listas,
+- [x] **Fase 3 — Biblioteca pessoal:** quero assistir, assistidos, abandonados,
+  notas de 0,5 a 5 e favoritos, com propriedade derivada do token e RLS.
+- [ ] **Fases seguintes:** diário, reviews, listas,
   círculos e Movie Night.
 
 ## Arquitetura
@@ -50,7 +53,7 @@ público do TMDB e a base de identidade Supabase com autorização deny-by-defau
 flowchart LR
     Browser["Browser"] --> Web["Next.js"]
     Web --> API["FastAPI"]
-    API --> DB[("PostgreSQL<br>cache público")]
+    API --> DB[("PostgreSQL<br>cache + dados privados")]
     API --> TMDB["TMDB"]
 ```
 
@@ -119,6 +122,11 @@ pnpm dev
 | `GET` | `/movies/{tmdb_id}/providers` | cache público de 6h |
 | `GET` | `/me` | perfil privado do token autenticado |
 | `POST` | `/me` | cria o perfil privado; proprietário vem do token |
+| `GET` | `/me/movies`, `/me/watchlist`, `/me/watched` | biblioteca privada do token |
+| `GET` | `/me/movies/{tmdb_id}` | estado pessoal de um filme |
+| `POST` | `/me/movies/{tmdb_id}` | inclui ou substitui estado pessoal |
+| `PATCH` | `/me/movies/{tmdb_id}` | altera campos informados |
+| `DELETE` | `/me/movies/{tmdb_id}` | remove da biblioteca privada |
 
 ## Qualidade e entrega
 

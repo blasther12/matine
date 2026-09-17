@@ -1,29 +1,27 @@
-# Threat model: Phase 0 and Phase 1
+# Threat model: Phases 0–3
 
 ## Scope and assumptions
 
-This model covers the public foundation, health endpoint, local PostgreSQL,
-Next.js-to-FastAPI boundary, and the Phase 1 TMDB catalog proxy/cache. There is
-no authentication or personal movie data in these phases. Production terminates
-TLS at a trusted edge; local ports bind to loopback where possible.
+This model covers the public catalog, Supabase-backed identity, private profile,
+and personal movie library. Production terminates TLS at a trusted edge; local
+ports bind to loopback where possible.
 
 The browser and every HTTP input are untrusted. TMDB is trusted to provide
 catalog data but its payloads are still untrusted input. Source dependencies,
 container images, CI actions, developer machines, and deployment configuration
 are supply-chain or operator trust boundaries, not inherently safe content.
 
-Authentication, cookies, CSRF, user ownership, social visibility, account
-deletion, and row-level security are deliberately deferred. They must be added
-to this model before Phase 2 begins, not retrofitted after private endpoints are
-released.
+Social visibility remains deferred. Private state is owner-only, authenticated
+through Supabase, checked in application services, and protected by PostgreSQL
+RLS for Data API access.
 
 ## Assets
 
-- TMDB token, database credentials, and future Supabase secrets;
+- TMDB token, database credentials, and Supabase secrets/tokens;
 - integrity and availability of API responses and the public catalog cache;
 - confidentiality of operational configuration and logs;
 - repository, dependency lockfiles, CI jobs, and deployment pipeline;
-- the privacy promise that Phase 0/1 creates no behavioral or personal profile.
+- profile identifiers, library choices, ratings, favorites, and timestamps.
 
 ## Trust boundaries
 
@@ -64,16 +62,18 @@ component does not grant implicit trust at the next component.
 | Development database exposed beyond the machine | Data/configuration compromise | Bind host port to `127.0.0.1`; development-only credentials; unique production secrets; least privilege | Inspect Compose config and deployment configuration |
 | Compromised dependency, image, or CI action | Build or runtime compromise | Lock dependencies, pin release actions by commit SHA, scope job permissions, generate SBOM/provenance, review updates, use read-only CI permissions and trusted image sources | Reproducible install, CI review, image digest verification, `pip-audit` and `pnpm audit` |
 | Accidental collection of identity before Phase 2 | Unreviewed personal-data exposure | No auth/profile fields, analytics, tracking, uploads, or Supabase calls in Phase 0/1; migration data-necessity gate | Schema and network-call review |
+| Caller swaps a profile, movie-row, or relation UUID | Cross-account read/write | Accept only public TMDB IDs; derive owner from the validated token; never expose or accept internal ownership IDs | API tests reject extra `user_id`; response-schema tests |
+| Direct Supabase Data API bypasses application authorization | Private library disclosure or mutation | RLS enabled, grants explicit, owner policies use `auth.uid()`, anon privileges revoked | Migration review and production migration gate |
+| Stolen or forged access token | Account takeover | Validate every token with Supabase Auth, use secure SSR cookies, never persist or log tokens, keep responses `no-store` | Auth rejection and log-redaction tests |
+| Enumeration reveals another user's saved movies | Behavioral-data disclosure | Every lookup includes the token-derived owner; absent and non-owned resources share generic `404` behavior | Cross-owner repository/integration test gate |
 
 ## Authorization position
 
-Phase 0/1 exposes public catalog behavior only. It must not simulate identity
-with a request `user_id`, placeholder owner, browser header, or query parameter.
-The first authenticated feature must derive the current user from a verified
-Supabase session and then enforce resource ownership, visibility, and circle
-membership in the backend.
+Catalog routes are public. Profile and library routes derive the current user
+from a verified Supabase session and never accept a request `user_id`, placeholder
+owner, browser identity header, or owner query parameter.
 
-Before Phase 2, add tests proving at minimum:
+Authorization tests prove at minimum:
 
 - unauthenticated callers cannot access `/me`;
 - a payload `user_id` cannot select ownership;

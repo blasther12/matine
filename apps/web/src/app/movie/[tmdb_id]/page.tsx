@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { removeLibraryMovie, saveLibraryMovie } from "@/app/library/actions";
 import { Badge } from "@/components/ui/badge";
 import { buttonClassName } from "@/components/ui/button";
 import {
@@ -13,6 +14,8 @@ import {
   type MovieProviders,
   tmdbImageUrl,
 } from "@/lib/api";
+import { getLibraryMovie, getProfile, type LibraryMovie } from "@/lib/backend.server";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -87,6 +90,22 @@ export default async function MoviePage({
   const poster = tmdbImageUrl(movie.poster_path, "w500");
   const backdrop = tmdbImageUrl(movie.backdrop_path, "original");
   const runtime = formatRuntime(movie.runtime_minutes);
+  let libraryEntry: LibraryMovie | null = null;
+  let accountState: "anonymous" | "profile-required" | "ready" = "anonymous";
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data } = await supabase.auth.getSession();
+    if (data.session) {
+      const [profile, entry] = await Promise.all([
+        getProfile(data.session.access_token),
+        getLibraryMovie(data.session.access_token, tmdbId),
+      ]);
+      accountState = profile ? "ready" : "profile-required";
+      libraryEntry = entry;
+    }
+  } catch {
+    // Catalog details remain public when the private account service is unavailable.
+  }
 
   return (
     <div className="film-grain min-h-screen bg-background text-foreground">
@@ -164,17 +183,64 @@ export default async function MoviePage({
               <p className="mt-7 max-w-3xl text-pretty text-base leading-8 text-zinc-300">
                 {movie.overview || "Sinopse ainda não disponível em português."}
               </p>
-              {movie.trailer && (
-                <a
-                  className={buttonClassName("primary", "mt-8")}
-                  href={`https://www.youtube.com/watch?v=${movie.trailer.key}`}
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  Assistir trailer
-                  <span aria-hidden="true">↗</span>
-                </a>
-              )}
+              <div className="mt-8 flex flex-wrap gap-3">
+                {movie.trailer && (
+                  <a
+                    className={buttonClassName("primary")}
+                    href={`https://www.youtube.com/watch?v=${movie.trailer.key}`}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    Assistir trailer
+                    <span aria-hidden="true">↗</span>
+                  </a>
+                )}
+                <Link className={buttonClassName("secondary")} href="/library">Minha biblioteca</Link>
+              </div>
+
+              <div className="mt-8 max-w-3xl rounded-2xl border border-white/[0.09] bg-black/35 p-5">
+                {accountState === "ready" ? (
+                  <>
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="font-mono text-[0.62rem] tracking-[0.18em] text-amber-200 uppercase">Estado pessoal</p>
+                        <h2 className="mt-2 font-serif text-2xl text-white">Guardar na biblioteca</h2>
+                      </div>
+                      {libraryEntry ? <Badge tone="accent">Salvo</Badge> : null}
+                    </div>
+                    <form action={saveLibraryMovie} className="mt-5 grid gap-4 sm:grid-cols-[1.2fr_0.8fr_auto] sm:items-end">
+                      <input name="tmdb_id" type="hidden" value={tmdbId} />
+                      <label className="text-xs text-zinc-400">Status
+                        <select className="mt-2 block min-h-11 w-full rounded-xl border border-white/10 bg-zinc-950 px-3 text-sm text-white" defaultValue={libraryEntry?.status ?? "WATCHLIST"} name="status">
+                          <option value="WATCHLIST">Quero assistir</option>
+                          <option value="WATCHED">Assistido</option>
+                          <option value="DROPPED">Abandonado</option>
+                        </select>
+                      </label>
+                      <label className="text-xs text-zinc-400">Minha nota
+                        <select className="mt-2 block min-h-11 w-full rounded-xl border border-white/10 bg-zinc-950 px-3 text-sm text-white" defaultValue={libraryEntry?.rating?.toString() ?? ""} name="rating">
+                          <option value="">Sem nota</option>
+                          {Array.from({ length: 10 }, (_, index) => (index + 1) / 2).map((rating) => <option key={rating} value={rating}>{rating.toFixed(1)}</option>)}
+                        </select>
+                      </label>
+                      <button className={buttonClassName("primary", "rounded-xl")} type="submit">Salvar</button>
+                      <label className="flex min-h-8 items-center gap-2 text-sm text-zinc-300 sm:col-span-3">
+                        <input defaultChecked={libraryEntry?.favorite ?? false} name="favorite" type="checkbox" /> Favorito
+                      </label>
+                    </form>
+                    {libraryEntry ? (
+                      <form action={removeLibraryMovie} className="mt-4 border-t border-white/[0.07] pt-4">
+                        <input name="tmdb_id" type="hidden" value={tmdbId} />
+                        <button className="text-xs text-zinc-500 hover:text-red-200" type="submit">Remover da biblioteca</button>
+                      </form>
+                    ) : null}
+                  </>
+                ) : accountState === "profile-required" ? (
+                  <p className="text-sm leading-6 text-zinc-400">Finalize seu perfil privado para começar a biblioteca. <Link className="text-amber-200" href="/account">Configurar perfil →</Link></p>
+                ) : (
+                  <p className="text-sm leading-6 text-zinc-400">Entre para montar sua biblioteca privada, avaliar e favoritar filmes. <Link className="text-amber-200" href="/login">Entrar →</Link></p>
+                )}
+              </div>
             </div>
           </div>
         </section>

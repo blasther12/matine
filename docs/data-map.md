@@ -1,9 +1,9 @@
 # Data map and retention
 
-This inventory describes Phases 0–2. Phase 2 introduces the minimum application
-profile linked to Supabase Auth. It does not store e-mail, password material,
-tokens, watch history, ratings, reviews, lists, streaming preferences, social
-graphs, or taste profiles.
+This inventory describes Phases 0–3. Phase 3 introduces the minimum private
+state required for a personal movie library. It does not store e-mail, password
+material, tokens, viewing dates, review text, lists, streaming preferences,
+social graphs, or inferred taste profiles.
 
 ## Data flows
 
@@ -45,6 +45,10 @@ identifiers, or unrelated request metadata to TMDB.
 | Internal profile UUID | 2, stable ownership key without exposing the auth provider ID | Private identifier | PostgreSQL `users.id` | Account lifetime | Profile owner and backend only |
 | Username and display name | 2, user-selected profile identity | Private by default | PostgreSQL `users` | Account lifetime; user-controlled deletion arrives before social publication | Profile owner and backend only |
 | Avatar URL | 2, optional profile presentation | Private by default | PostgreSQL `users`; image bytes are not copied | Account lifetime or until changed | Profile owner and backend only |
+| TMDB ID associated with a library entry | 3, identify the catalog movie chosen by the user | Private behavioral data in this context | PostgreSQL `movies` joined to `user_movies` | Until the user removes the entry or account deletion cascades | Profile owner and backend only |
+| Library status (`WATCHLIST`, `WATCHED`, `DROPPED`) | 3, remember the user's explicit movie state | Private behavioral data | PostgreSQL `user_movies` | Until changed/removed or account deletion cascades | Profile owner and backend only |
+| Half-star rating and favorite flag | 3, explicit personal evaluation and shortcut | Private preference data | PostgreSQL `user_movies` | Until changed/removed or account deletion cascades | Profile owner and backend only |
+| Library creation/update timestamps | 3, ordering and audit of the user's own state | Private metadata | PostgreSQL `user_movies` | Same as the library entry | Profile owner and backend only |
 
 Routes must be logged as templates such as `/movies/{tmdb_id}`, not raw URLs.
 Query strings, request and response bodies, IP addresses, cookies,
@@ -82,8 +86,8 @@ ownership from the validated Supabase UUID.
 The Compose PostgreSQL volume persists schema and public cache between restarts.
 It remains until a developer explicitly removes that local volume; removal is a
 destructive development action and should never target an unverified database.
-Phase 0/1 does not require production backups of personal data because none is
-collected.
+Production backups that contain Phase 2/3 personal rows inherit the same access
+controls and must use the shortest operationally viable retention.
 
 Temporary files must use isolated storage and be deleted at the end of the
 operation. The application does not accept uploads in Phase 0/1.
