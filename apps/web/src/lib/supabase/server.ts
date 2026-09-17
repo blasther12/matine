@@ -7,8 +7,8 @@ import { supabaseConfig } from "./config";
 
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
-  const { url, anonKey } = supabaseConfig();
-  return createServerClient(url, anonKey, {
+  const { url, publishableKey } = supabaseConfig();
+  return createServerClient(url, publishableKey, {
     cookies: {
       getAll: () => cookieStore.getAll(),
       setAll: (cookiesToSet) => {
