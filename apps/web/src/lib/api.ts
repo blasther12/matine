@@ -110,10 +110,11 @@ export class ApiError extends Error {
 }
 
 function serverApiOrigin(): string {
-  const configured =
-    process.env.API_INTERNAL_URL ??
-    process.env.NEXT_PUBLIC_API_URL ??
-    "http://localhost:8000";
+  const configured = process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL;
+  if (!configured) {
+    const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
+    return vercelHost ? `https://${vercelHost}` : "http://localhost:3000";
+  }
   const parsed = new URL(configured);
   if (!["http:", "https:"].includes(parsed.protocol) || parsed.username || parsed.password) {
     throw new Error("API origin must be an HTTP(S) origin without credentials");

@@ -2,11 +2,9 @@ import type { NextConfig } from "next";
 
 const isProduction = process.env.NODE_ENV === "production";
 
-function apiOrigin(): string {
-  const value =
-    process.env.API_INTERNAL_URL ??
-    process.env.NEXT_PUBLIC_API_URL ??
-    "http://localhost:8000";
+function apiOrigin(): string | null {
+  const value = process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL;
+  if (!value) return null;
   const parsed = new URL(value);
   if (!["http:", "https:"].includes(parsed.protocol) || parsed.username || parsed.password) {
     throw new Error("API_INTERNAL_URL must be an HTTP(S) origin without credentials");
@@ -50,10 +48,12 @@ const nextConfig: NextConfig = {
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   async rewrites() {
+    const origin = apiOrigin();
+    if (!origin) return [];
     return [
       {
         source: "/api/backend/:path*",
-        destination: `${apiOrigin()}/:path*`,
+        destination: `${origin}/:path*`,
       },
     ];
   },
