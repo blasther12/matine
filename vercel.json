@@ -1,9 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "env": {
-    "NEXT_PUBLIC_SUPABASE_URL": "https://gpizkywylfhdttecbzjn.supabase.co",
-    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_wAez1j-30SDUHXLuOjS4Mw_at1FwFpP"
-  },
   "services": {
     "web": {
       "root": "apps/web",
