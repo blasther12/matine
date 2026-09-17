@@ -16,9 +16,20 @@ def test_database_secret_is_not_exposed_by_repr() -> None:
     assert password not in repr(settings)
 
 
-def test_database_requires_async_postgres_driver() -> None:
+def test_database_rejects_non_postgres_urls() -> None:
     with pytest.raises(ValidationError):
-        Settings(_env_file=None, database_url="postgresql://api:password@localhost:5432/app")
+        Settings(_env_file=None, database_url="sqlite:///tmp/app.db")
+
+
+def test_supabase_postgres_url_is_normalized_for_asyncpg() -> None:
+    settings = Settings(
+        _env_file=None,
+        database_url="postgresql://api:password@db.example.com:6543/app?sslmode=require",
+    )
+
+    assert settings.database_dsn == (
+        "postgresql+asyncpg://api:password@db.example.com:6543/app?ssl=require"
+    )
 
 
 @pytest.mark.parametrize(

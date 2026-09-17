@@ -61,3 +61,21 @@ atualizar `latest`. Isso permite republicar um release ou criar uma imagem
 Este pipeline termina no GHCR. O deploy em Render, Fly.io, Kubernetes, AWS ou
 outro runtime deve consumir essas imagens por digest e executar as migrações
 Alembic como etapa única antes de promover a API.
+
+## Vercel Services
+
+O `vercel.json` da raiz publica o monorepo como um único projeto:
+
+- `apps/web` atende `/` com Next.js;
+- `apps/api/app/main.py` atende `/api/backend` com FastAPI;
+- frontend e backend compartilham o domínio e as variáveis server-only do projeto.
+
+No painel da Vercel, deixe **Root Directory** vazio (raiz do repositório) e selecione
+**Services** em **Framework Preset**. Não configure `API_INTERNAL_URL` na Vercel: a
+plataforma injeta `BACKEND_URL` e faz o roteamento interno. Depois de alterar essas
+opções, execute um redeploy sem cache.
+
+`DATABASE_URL`, `TMDB_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY` e `CRON_SECRET` nunca
+devem usar o prefixo `NEXT_PUBLIC_`. A URL e a anon key do Supabase são públicas por
+design e permanecem em `NEXT_PUBLIC_SUPABASE_URL` e
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`.

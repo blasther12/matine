@@ -1,7 +1,7 @@
 import json
 from functools import lru_cache
 from typing import Literal, Self
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -12,6 +12,7 @@ LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 DEFAULT_DATABASE_URL = (
     "postgresql+asyncpg://movie_platform:movie_platform@localhost:5432/movie_platform"
 )
+_DATABASE_SCHEMES = {"postgres", "postgresql", "postgresql+asyncpg"}
 
 
 def _parse_list(value: str, *, field_name: str) -> tuple[str, ...]:
@@ -136,8 +137,14 @@ class Settings(BaseSettings):
     @classmethod
     def validate_database_url(cls, value: SecretStr) -> SecretStr:
         raw_value = value.get_secret_value()
-        if not raw_value.startswith("postgresql+asyncpg://"):
-            raise ValueError("DATABASE_URL must use the postgresql+asyncpg driver")
+        parsed = urlsplit(raw_value)
+        if (
+            parsed.scheme not in _DATABASE_SCHEMES
+            or parsed.hostname is None
+            or not parsed.path.strip("/")
+            or parsed.fragment
+        ):
+            raise ValueError("DATABASE_URL must be a valid PostgreSQL connection URL")
         return value
 
     @property
@@ -160,7 +167,20 @@ class Settings(BaseSettings):
 
     @property
     def database_dsn(self) -> str:
-        return self.database_url.get_secret_value()
+        parsed = urlsplit(self.database_url.get_secret_value())
+        query = [
+            ("ssl" if key == "sslmode" else key, value)
+            for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+        ]
+        return urlunsplit(
+            (
+                "postgresql+asyncpg",
+                parsed.netloc,
+                parsed.path,
+                urlencode(query),
+                "",
+            )
+        )
 
     @property
     def tmdb_token(self) -> str:

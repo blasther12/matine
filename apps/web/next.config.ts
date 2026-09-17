@@ -3,10 +3,17 @@ import type { NextConfig } from "next";
 const isProduction = process.env.NODE_ENV === "production";
 
 function apiOrigin(): string | null {
-  const value = process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL;
+  const value = process.env.API_INTERNAL_URL;
   if (!value) return null;
   const parsed = new URL(value);
-  if (!["http:", "https:"].includes(parsed.protocol) || parsed.username || parsed.password) {
+  if (
+    !["http:", "https:"].includes(parsed.protocol) ||
+    parsed.username ||
+    parsed.password ||
+    parsed.pathname !== "/" ||
+    parsed.search ||
+    parsed.hash
+  ) {
     throw new Error("API_INTERNAL_URL must be an HTTP(S) origin without credentials");
   }
   return parsed.origin;

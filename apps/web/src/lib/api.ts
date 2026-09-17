@@ -109,17 +109,27 @@ export class ApiError extends Error {
   }
 }
 
-function serverApiOrigin(): string {
-  const configured = process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL;
-  if (!configured) {
-    const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
-    return vercelHost ? `https://${vercelHost}` : "http://localhost:3000";
+function validatedApiBase(value: string): string {
+  const parsed = new URL(value);
+  if (
+    !["http:", "https:"].includes(parsed.protocol) ||
+    parsed.username ||
+    parsed.password ||
+    parsed.search ||
+    parsed.hash
+  ) {
+    throw new Error("API base must be an HTTP(S) URL without credentials, query, or fragment");
   }
-  const parsed = new URL(configured);
-  if (!["http:", "https:"].includes(parsed.protocol) || parsed.username || parsed.password) {
-    throw new Error("API origin must be an HTTP(S) origin without credentials");
-  }
-  return parsed.origin;
+  return value.replace(/\/$/, "");
+}
+
+function serverApiBase(): string {
+  const configured = process.env.API_INTERNAL_URL ?? process.env.BACKEND_URL;
+  if (configured) return validatedApiBase(configured);
+
+  const vercelHost = process.env.VERCEL_URL ?? process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  const origin = vercelHost ? `https://${vercelHost}` : "http://localhost:3000";
+  return `${origin}/api/backend`;
 }
 
 function apiUrl(path: string): string {
@@ -127,7 +137,7 @@ function apiUrl(path: string): string {
     throw new Error("API path must be root-relative");
   }
   return typeof window === "undefined"
-    ? `${serverApiOrigin()}${path}`
+    ? `${serverApiBase()}${path}`
     : `/api/backend${path}`;
 }
 

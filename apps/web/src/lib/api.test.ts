@@ -1,6 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { formatRuntime, movieDetailsSchema, tmdbImageUrl } from "./api";
+import { formatRuntime, movieDetailsSchema, searchMovies, tmdbImageUrl } from "./api";
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
 
 describe("catalog helpers", () => {
   it("builds only fixed-host TMDB image URLs", () => {
@@ -39,5 +44,34 @@ describe("catalog helpers", () => {
         trailer: { site: "Other", key: "https://attacker.example", name: "x" },
       }).success,
     ).toBe(false);
+  });
+
+  it("uses the Vercel Services backend URL during server rendering", async () => {
+    vi.stubEnv("BACKEND_URL", "https://matine.example/api/backend");
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          page: 1,
+          total_pages: 0,
+          total_results: 0,
+          results: [],
+          attribution: { source: "TMDB", notice: "notice" },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await searchMovies("Alien");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://matine.example/api/backend/movies/search?q=Alien&page=1",
+      expect.any(Object),
+    );
+  });
+
+  it("rejects credential-bearing backend URLs", async () => {
+    vi.stubEnv("BACKEND_URL", "https://user:password@matine.example/api/backend");
+    await expect(searchMovies("Alien")).rejects.toThrow("API base must be an HTTP(S) URL");
   });
 });
