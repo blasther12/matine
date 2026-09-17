@@ -44,8 +44,8 @@ export async function proxy(request: NextRequest) {
 
   response.headers.set("Content-Security-Policy", contentSecurityPolicy);
 
-  const { url, anonKey } = supabaseConfig();
-  const supabase = createServerClient(url, anonKey, {
+  const { url, publishableKey } = supabaseConfig();
+  const supabase = createServerClient(url, publishableKey, {
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll: (cookiesToSet) => {
