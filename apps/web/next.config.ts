@@ -75,6 +75,3 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
-
-// Vercel deployment trigger; safe to remove after deployment.
-// Force Git push event for production rebuild.
