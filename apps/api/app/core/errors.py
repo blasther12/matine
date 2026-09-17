@@ -115,5 +115,5 @@ def install_error_handlers(app: FastAPI) -> None:
     ):
         app.add_exception_handler(
             exception_type,
-            catalog_exception_handler,  # type: ignore[arg-type]
+            catalog_exception_handler,
         )
