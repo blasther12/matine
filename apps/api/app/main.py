@@ -58,7 +58,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.add_middleware(
         RequestSecurityMiddleware,
-        environment=resolved_settings.app_env,
+        environment=resolved_settings.runtime_environment,
         trusted_hosts=resolved_settings.trusted_hosts,
     )
 

@@ -32,6 +32,30 @@ def test_supabase_postgres_url_is_normalized_for_asyncpg() -> None:
     )
 
 
+def test_vercel_system_hosts_are_used_as_exact_production_allowlists() -> None:
+    settings = Settings(
+        _env_file=None,
+        vercel_env="production",
+        vercel_url="matine-git-main.example.vercel.app",
+        vercel_branch_url="matine-main.example.vercel.app",
+        vercel_project_production_url="matine-fawn.vercel.app",
+        database_url="postgresql://api:password@db.example.com:6543/app?sslmode=require",
+        tmdb_api_key="synthetic-test-token",
+    )
+
+    assert settings.runtime_environment == "production"
+    assert settings.trusted_hosts == (
+        "matine-git-main.example.vercel.app",
+        "matine-main.example.vercel.app",
+        "matine-fawn.vercel.app",
+    )
+    assert settings.cors_origins == (
+        "https://matine-git-main.example.vercel.app",
+        "https://matine-main.example.vercel.app",
+        "https://matine-fawn.vercel.app",
+    )
+
+
 @pytest.mark.parametrize(
     ("overrides", "expected_message"),
     [

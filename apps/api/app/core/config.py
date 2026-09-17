@@ -8,6 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 Environment = Literal["development", "test", "production"]
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+VercelEnvironment = Literal["development", "preview", "production"]
 
 DEFAULT_DATABASE_URL = (
     "postgresql+asyncpg://movie_platform:movie_platform@localhost:5432/movie_platform"
@@ -88,6 +89,10 @@ def _validated_host(host: str) -> str:
     return parsed.hostname.lower()
 
 
+def _is_local_host(host: str | None) -> bool:
+    return host in {"localhost", "127.0.0.1", "::1", "testserver"}
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -100,6 +105,22 @@ class Settings(BaseSettings):
     app_env: Environment = Field(default="development", validation_alias="APP_ENV")
     debug: bool = Field(default=False, validation_alias="DEBUG")
     log_level: LogLevel = Field(default="INFO", validation_alias="LOG_LEVEL")
+    vercel_env: VercelEnvironment | None = Field(
+        default=None,
+        validation_alias="VERCEL_ENV",
+        repr=False,
+    )
+    vercel_url: str | None = Field(default=None, validation_alias="VERCEL_URL", repr=False)
+    vercel_branch_url: str | None = Field(
+        default=None,
+        validation_alias="VERCEL_BRANCH_URL",
+        repr=False,
+    )
+    vercel_project_production_url: str | None = Field(
+        default=None,
+        validation_alias="VERCEL_PROJECT_PRODUCTION_URL",
+        repr=False,
+    )
     database_url: SecretStr = Field(
         default=SecretStr(DEFAULT_DATABASE_URL),
         validation_alias="DATABASE_URL",
@@ -149,20 +170,39 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins(self) -> tuple[str, ...]:
+        configured = _parse_list(self.cors_origins_csv, field_name="CORS_ORIGINS")
+        if self.vercel_env is not None:
+            configured = tuple(
+                origin for origin in configured if not _is_local_host(urlsplit(origin).hostname)
+            )
+        vercel_origins = tuple(f"https://{host}" for host in self.vercel_hosts)
         return tuple(
             dict.fromkeys(
                 _validated_origin(origin, production=self.is_production)
-                for origin in _parse_list(self.cors_origins_csv, field_name="CORS_ORIGINS")
+                for origin in (*configured, *vercel_origins)
             )
         )
 
     @property
     def trusted_hosts(self) -> tuple[str, ...]:
-        return tuple(
-            dict.fromkeys(
-                _validated_host(host)
-                for host in _parse_list(self.trusted_hosts_csv, field_name="TRUSTED_HOSTS")
+        configured = _parse_list(self.trusted_hosts_csv, field_name="TRUSTED_HOSTS")
+        if self.vercel_env is not None:
+            configured = tuple(
+                host for host in configured if not _is_local_host(_validated_host(host))
             )
+        return tuple(
+            dict.fromkeys(_validated_host(host) for host in (*configured, *self.vercel_hosts))
+        )
+
+    @property
+    def vercel_hosts(self) -> tuple[str, ...]:
+        candidates = (
+            self.vercel_url,
+            self.vercel_branch_url,
+            self.vercel_project_production_url,
+        )
+        return tuple(
+            dict.fromkeys(_validated_host(host) for host in candidates if host is not None)
         )
 
     @property
@@ -188,7 +228,11 @@ class Settings(BaseSettings):
 
     @property
     def is_production(self) -> bool:
-        return self.app_env == "production"
+        return self.app_env == "production" or self.vercel_env == "production"
+
+    @property
+    def runtime_environment(self) -> Environment:
+        return "production" if self.is_production else self.app_env
 
     @model_validator(mode="after")
     def validate_environment_safety(self) -> Self:
@@ -202,11 +246,9 @@ class Settings(BaseSettings):
                 raise ValueError("production must not use the development database URL")
             if not self.tmdb_token:
                 raise ValueError("TMDB_API_KEY is required in production")
-            if any(host in {"localhost", "127.0.0.1", "::1", "testserver"} for host in hosts):
+            if any(_is_local_host(host) for host in hosts):
                 raise ValueError("production TRUSTED_HOSTS must not contain local hosts")
-            if any(
-                urlsplit(origin).hostname in {"localhost", "127.0.0.1", "::1"} for origin in origins
-            ):
+            if any(_is_local_host(urlsplit(origin).hostname) for origin in origins):
                 raise ValueError("production CORS_ORIGINS must not contain local hosts")
 
         return self
