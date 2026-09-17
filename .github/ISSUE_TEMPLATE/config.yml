@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Reportar uma vulnerabilidade
+    url: https://github.com/blasther12/matine/security/policy
+    about: Use o canal privado indicado pela política de segurança.

@@ -1,0 +1,31 @@
+name: Sugerir uma melhoria
+description: Proponha uma evolução de produto ou engenharia.
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Qual problema deve ser resolvido?
+      description: Descreva a necessidade, não apenas a solução.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposta
+      description: Explique a experiência ou mudança desejada.
+    validations:
+      required: true
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Impacto em privacidade e segurança
+      description: Quais dados seriam usados, por quê, por quanto tempo e quem poderia acessá-los?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas consideradas
+      description: Há uma solução com menos dados, permissões ou complexidade?

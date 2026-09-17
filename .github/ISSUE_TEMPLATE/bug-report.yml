@@ -1,0 +1,59 @@
+name: Relatar um bug
+description: Informe um problema reproduzível sem compartilhar dados sensíveis.
+title: "fix: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado pelo relato. Para vulnerabilidades, não continue neste formulário:
+        use a política de segurança do repositório.
+  - type: textarea
+    id: summary
+    attributes:
+      label: O que aconteceu?
+      description: Explique o problema e o comportamento esperado.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Como reproduzir?
+      placeholder: |
+        1. Acesse...
+        2. Busque...
+        3. Observe...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      options:
+        - Web
+        - API
+        - Banco ou migração
+        - Docker ou CI
+        - Documentação
+        - Não sei
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Ambiente
+      description: Sistema operacional, navegador e versões relevantes.
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidências sanitizadas
+      description: Remova tokens, cookies, IPs, queries privadas e dados pessoais.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacidade
+      options:
+        - label: Confirmei que o relato não contém segredos nem dados pessoais.
+          required: true
+        - label: Este relato não descreve uma vulnerabilidade de segurança.
+          required: true
