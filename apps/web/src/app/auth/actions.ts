@@ -11,9 +11,10 @@ function text(formData: FormData, key: string): string {
 }
 
 function siteUrl(): string {
-  const configured = process.env.NEXT_PUBLIC_SITE_URL;
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
   if (configured) return new URL(configured).origin;
-  const host = process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
+  const host =
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
   return host ? `https://${host}` : "http://localhost:3000";
 }
 
@@ -24,7 +25,12 @@ export async function signIn(formData: FormData): Promise<never> {
 
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error?.code === "email_not_confirmed") {
+    redirect("/login?error=email-not-confirmed");
+  }
   if (error) redirect("/login?error=credentials");
+
   redirect("/account");
 }
 
@@ -39,8 +45,24 @@ export async function signUp(formData: FormData): Promise<never> {
     password,
     options: { emailRedirectTo: `${siteUrl()}/auth/callback` },
   });
+
   if (error) redirect("/login?error=signup");
   redirect(data.session ? "/account" : "/login?status=confirm-email");
+}
+
+export async function resendConfirmation(formData: FormData): Promise<never> {
+  const email = text(formData, "email");
+  if (!email) redirect("/login?error=invalid");
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email,
+    options: { emailRedirectTo: `${siteUrl()}/auth/callback` },
+  });
+
+  if (error) redirect("/login?error=resend");
+  redirect("/login?status=confirmation-resent");
 }
 
 export async function signOut(): Promise<never> {
@@ -52,13 +74,19 @@ export async function signOut(): Promise<never> {
 export async function finishProfile(formData: FormData): Promise<never> {
   const username = text(formData, "username").toLowerCase();
   const displayName = text(formData, "display_name");
-  if (!/^[a-z0-9_]{3,30}$/.test(username) || !displayName || displayName.length > 80) {
+
+  if (
+    !/^[a-z0-9_]{3,30}$/.test(username) ||
+    !displayName ||
+    displayName.length > 80
+  ) {
     redirect("/account?error=profile");
   }
 
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.auth.getSession();
   if (!data.session) redirect("/login");
+
   try {
     await createProfile(data.session.access_token, {
       username,
@@ -67,5 +95,6 @@ export async function finishProfile(formData: FormData): Promise<never> {
   } catch {
     redirect("/account?error=profile");
   }
+
   redirect("/account");
 }
