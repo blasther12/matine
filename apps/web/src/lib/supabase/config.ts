@@ -3,10 +3,11 @@ const DEFAULT_SUPABASE_PUBLISHABLE_KEY =
   "sb_publishable_wAez1j-30SDUHXLuOjS4Mw_at1FwFpP";
 
 export function supabaseConfig(): { url: string; publishableKey: string } {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? DEFAULT_SUPABASE_URL;
+  const url =
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || DEFAULT_SUPABASE_URL;
   const publishableKey =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ||
     DEFAULT_SUPABASE_PUBLISHABLE_KEY;
 
   const parsed = new URL(url);
