@@ -1,0 +1,30 @@
+# dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# local environment files
+.env
+.env.local
+.env.*.local
+
+# Vercel local metadata
+.vercel/
+
+# Python (backend will be added later)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# editors / OS
+.DS_Store
+.idea/
+.vscode/
+
+# logs
+*.log
+npm-debug.log*
