@@ -17,6 +17,10 @@
 - API and web responses receive restrictive security headers.
 - CI has read-only repository permissions and runs tests, static checks, and
   dependency audits.
+- Release and image-publishing jobs grant write permissions only to the job that
+  needs them. New third-party actions are pinned to immutable commit SHAs.
+- Published images include BuildKit SBOM and provenance; GitHub attestations run
+  when the repository visibility and plan support them.
 
 ## Threat-model checklist
 

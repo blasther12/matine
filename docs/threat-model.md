@@ -62,7 +62,7 @@ component does not grant implicit trust at the next component.
 | Missing security headers or framing protection | XSS, content sniffing, clickjacking, referrer leakage | CSP with `frame-ancestors`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, and production HSTS | Header test on web and API responses |
 | Public errors expose internals | Filesystem, SQL, dependency, or secret disclosure | Map exceptions to stable codes; retain diagnostic detail only in redacted operator logs | Force configuration, database, and upstream failures |
 | Development database exposed beyond the machine | Data/configuration compromise | Bind host port to `127.0.0.1`; development-only credentials; unique production secrets; least privilege | Inspect Compose config and deployment configuration |
-| Compromised dependency, image, or CI action | Build or runtime compromise | Lock dependencies, minimize packages, review updates, read-only CI permissions, static checks, connected advisory audits, trusted image sources | Reproducible install, CI review, `pip-audit` and `pnpm audit` |
+| Compromised dependency, image, or CI action | Build or runtime compromise | Lock dependencies, pin release actions by commit SHA, scope job permissions, generate SBOM/provenance, review updates, use read-only CI permissions and trusted image sources | Reproducible install, CI review, image digest verification, `pip-audit` and `pnpm audit` |
 | Accidental collection of identity before Phase 2 | Unreviewed personal-data exposure | No auth/profile fields, analytics, tracking, uploads, or Supabase calls in Phase 0/1; migration data-necessity gate | Schema and network-call review |
 
 ## Authorization position
