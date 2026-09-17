@@ -79,3 +79,12 @@ opções, execute um redeploy sem cache.
 devem usar o prefixo `NEXT_PUBLIC_`. A URL e a anon key do Supabase são públicas por
 design e permanecem em `NEXT_PUBLIC_SUPABASE_URL` e
 `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+
+## Migrações de produção
+
+O workflow manual **Database migration** executa somente a partir de `main`, usa
+o GitHub Environment `production` e serializa execuções para impedir duas
+migrações concorrentes. Cadastre `DATABASE_URL` como secret desse environment,
+proteja-o com aprovação quando disponível e execute a Action antes de promover
+um deploy que dependa de schema novo. O valor não é impresso nem persistido em
+artefatos.
