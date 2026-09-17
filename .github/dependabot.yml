@@ -5,11 +5,25 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    ignore:
+      # TypeScript 7.0 is currently incompatible with the typescript-eslint
+      # version pulled by Next.js. Revisit once the lint toolchain supports TS 7.
+      - dependency-name: "typescript"
+        versions:
+          - ">=7.0.0 <7.1.0"
+
   - package-ecosystem: "pip"
     directory: "/apps/api"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    ignore:
+      # requirements.lock still validates mypy 1.x. Do not silently widen the
+      # supported major range until mypy 2 is deliberately tested and locked.
+      - dependency-name: "mypy"
+        update-types:
+          - "version-update:semver-major"
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
