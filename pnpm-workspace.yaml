@@ -4,6 +4,6 @@ packages:
 
 # Explicit supply-chain allowlist for native binaries used by the frontend
 # toolchain. Every other dependency install script remains blocked.
-allowBuilds:
-  esbuild: true
-  unrs-resolver: true
+onlyBuiltDependencies:
+  - esbuild
+  - unrs-resolver
