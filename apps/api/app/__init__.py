@@ -1,0 +1,1 @@
+"""Movie Platform API package."""

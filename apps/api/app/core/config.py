@@ -1,0 +1,197 @@
+import json
+from functools import lru_cache
+from typing import Literal, Self
+from urllib.parse import urlsplit
+
+from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+Environment = Literal["development", "test", "production"]
+LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+
+DEFAULT_DATABASE_URL = (
+    "postgresql+asyncpg://movie_platform:movie_platform@localhost:5432/movie_platform"
+)
+
+
+def _parse_list(value: str, *, field_name: str) -> tuple[str, ...]:
+    stripped = value.strip()
+    candidates: list[str]
+    if stripped.startswith("["):
+        try:
+            decoded: object = json.loads(stripped)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"{field_name} must be a JSON array or comma-separated list") from exc
+        if not isinstance(decoded, list) or not all(isinstance(item, str) for item in decoded):
+            raise ValueError(f"{field_name} JSON value must be an array of strings")
+        candidates = [item for item in decoded if isinstance(item, str)]
+    else:
+        candidates = stripped.split(",")
+
+    items = tuple(dict.fromkeys(item.strip() for item in candidates if item.strip()))
+    if not items:
+        raise ValueError(f"{field_name} must contain at least one value")
+    return items
+
+
+def _validated_origin(origin: str, *, production: bool) -> str:
+    if origin == "*":
+        raise ValueError("CORS origins must be explicit; wildcard is not allowed")
+
+    try:
+        parsed = urlsplit(origin)
+        _ = parsed.port
+    except ValueError as exc:
+        raise ValueError("CORS origin is not a valid origin") from exc
+
+    if parsed.scheme not in {"http", "https"} or parsed.hostname is None:
+        raise ValueError("CORS origin must use http or https and include a host")
+    if parsed.username is not None or parsed.password is not None:
+        raise ValueError("CORS origin must not contain credentials")
+    if parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
+        raise ValueError("CORS origin must not contain a path, query, or fragment")
+    if production and parsed.scheme != "https":
+        raise ValueError("production CORS origins must use https")
+
+    return origin.rstrip("/")
+
+
+def _validated_host(host: str) -> str:
+    normalized = host.strip().lower()
+    if (
+        not normalized
+        or normalized == "*"
+        or "*" in normalized
+        or "://" in normalized
+        or "/" in normalized
+        or any(character.isspace() for character in normalized)
+    ):
+        raise ValueError("trusted hosts must be explicit hostnames without scheme or path")
+
+    try:
+        parsed = urlsplit(f"//{normalized}")
+        _ = parsed.port
+    except ValueError as exc:
+        raise ValueError("trusted host is not valid") from exc
+
+    if (
+        parsed.hostname is None
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise ValueError("trusted host is not valid")
+
+    return parsed.hostname.lower()
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+        populate_by_name=True,
+    )
+
+    app_env: Environment = Field(default="development", validation_alias="APP_ENV")
+    debug: bool = Field(default=False, validation_alias="DEBUG")
+    log_level: LogLevel = Field(default="INFO", validation_alias="LOG_LEVEL")
+    database_url: SecretStr = Field(
+        default=SecretStr(DEFAULT_DATABASE_URL),
+        validation_alias="DATABASE_URL",
+        repr=False,
+    )
+    cors_origins_csv: str = Field(
+        default="http://localhost:3000",
+        validation_alias="CORS_ORIGINS",
+        repr=False,
+    )
+    trusted_hosts_csv: str = Field(
+        default="localhost,127.0.0.1,testserver",
+        validation_alias=AliasChoices("TRUSTED_HOSTS", "ALLOWED_HOSTS"),
+        repr=False,
+    )
+    tmdb_api_key: SecretStr = Field(
+        default=SecretStr(""),
+        validation_alias="TMDB_API_KEY",
+        repr=False,
+    )
+    rate_limit_requests: int = Field(
+        default=30,
+        ge=1,
+        le=10_000,
+        validation_alias="RATE_LIMIT_REQUESTS",
+    )
+    rate_limit_window_seconds: int = Field(
+        default=60,
+        ge=1,
+        le=3_600,
+        validation_alias="RATE_LIMIT_WINDOW_SECONDS",
+    )
+
+    @field_validator("database_url")
+    @classmethod
+    def validate_database_url(cls, value: SecretStr) -> SecretStr:
+        raw_value = value.get_secret_value()
+        if not raw_value.startswith("postgresql+asyncpg://"):
+            raise ValueError("DATABASE_URL must use the postgresql+asyncpg driver")
+        return value
+
+    @property
+    def cors_origins(self) -> tuple[str, ...]:
+        return tuple(
+            dict.fromkeys(
+                _validated_origin(origin, production=self.is_production)
+                for origin in _parse_list(self.cors_origins_csv, field_name="CORS_ORIGINS")
+            )
+        )
+
+    @property
+    def trusted_hosts(self) -> tuple[str, ...]:
+        return tuple(
+            dict.fromkeys(
+                _validated_host(host)
+                for host in _parse_list(self.trusted_hosts_csv, field_name="TRUSTED_HOSTS")
+            )
+        )
+
+    @property
+    def database_dsn(self) -> str:
+        return self.database_url.get_secret_value()
+
+    @property
+    def tmdb_token(self) -> str:
+        return self.tmdb_api_key.get_secret_value()
+
+    @property
+    def is_production(self) -> bool:
+        return self.app_env == "production"
+
+    @model_validator(mode="after")
+    def validate_environment_safety(self) -> Self:
+        origins = self.cors_origins
+        hosts = self.trusted_hosts
+
+        if self.is_production:
+            if self.debug:
+                raise ValueError("DEBUG must be disabled in production")
+            if self.database_dsn == DEFAULT_DATABASE_URL:
+                raise ValueError("production must not use the development database URL")
+            if not self.tmdb_token:
+                raise ValueError("TMDB_API_KEY is required in production")
+            if any(host in {"localhost", "127.0.0.1", "::1", "testserver"} for host in hosts):
+                raise ValueError("production TRUSTED_HOSTS must not contain local hosts")
+            if any(
+                urlsplit(origin).hostname in {"localhost", "127.0.0.1", "::1"} for origin in origins
+            ):
+                raise ValueError("production CORS_ORIGINS must not contain local hosts")
+
+        return self
+
+
+@lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    return Settings()

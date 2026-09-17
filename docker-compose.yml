@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: movie_platform
+      POSTGRES_USER: movie
+      POSTGRES_PASSWORD: movie
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U movie -d movie_platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./apps/api
+    restart: unless-stopped
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgresql+asyncpg://movie:movie@postgres:5432/movie_platform
+      CORS_ORIGINS: '["http://localhost:3000"]'
+      ALLOWED_HOSTS: localhost,127.0.0.1,api
+      TMDB_API_KEY: ${TMDB_API_KEY:-}
+    ports:
+      - "8000:8000"
+    command:
+      - /bin/sh
+      - -c
+      - alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log --no-server-header
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        API_INTERNAL_URL: http://api:8000
+    restart: unless-stopped
+    environment:
+      API_INTERNAL_URL: http://api:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
