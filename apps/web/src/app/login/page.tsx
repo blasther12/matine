@@ -15,8 +15,23 @@ type Props = {
 
 function errorMessage(error?: string): string | null {
   if (!error) return null;
-  if (error === "email-not-confirmed") {
+  if (error === "email_not_confirmed") {
     return "Seu e-mail ainda não foi confirmado. Confirme pelo link enviado pelo Supabase ou reenvie a confirmação abaixo.";
+  }
+  if (error === "email_address_invalid") {
+    return "O Supabase recusou esse endereço de e-mail.";
+  }
+  if (error === "email_provider_disabled") {
+    return "Cadastro por e-mail está desabilitado no Supabase.";
+  }
+  if (error === "signup_disabled") {
+    return "Novos cadastros estão desabilitados no Supabase.";
+  }
+  if (error === "over_email_send_rate_limit" || error === "over_request_rate_limit") {
+    return "O Supabase bloqueou novas tentativas temporariamente por limite de requisições ou e-mails. Aguarde alguns minutos e tente novamente.";
+  }
+  if (error === "user_already_exists") {
+    return "Já existe uma conta com esse e-mail. Tente entrar ou reenviar a confirmação.";
   }
   if (error === "credentials") {
     return "E-mail ou senha inválidos.";
