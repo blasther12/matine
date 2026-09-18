@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 
 import { addMovieListItem, createMovieList } from "@/app/features/actions";
-import { ExperienceShell, Panel, buttonClass, fieldClass } from "@/components/experience-shell";
+import { ExperienceShell, Panel, fieldClass } from "@/components/experience-shell";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { requireAccessToken } from "@/lib/auth.server";
 import { experienceApi } from "@/lib/experience.server";
 
@@ -17,7 +18,7 @@ export default async function ListsPage() {
           <label className="text-sm text-zinc-300">Nome<input className={fieldClass} maxLength={100} name="name" required /></label>
           <label className="text-sm text-zinc-300">Descrição<input className={fieldClass} maxLength={1000} name="description" /></label>
           <label className="text-sm text-zinc-300">Visibilidade<select className={fieldClass} name="visibility" defaultValue="PRIVATE"><option value="PRIVATE">Privada</option><option value="PUBLIC">Pública</option></select></label>
-          <button className={buttonClass} type="submit">Criar lista</button>
+          <SubmitButton className="rounded-xl" pendingLabel="Criando...">Criar lista</SubmitButton>
         </form>
       </Panel>
       <div className="mt-6 grid gap-5 lg:grid-cols-2">
@@ -34,7 +35,7 @@ export default async function ListsPage() {
               <input className={fieldClass} name="tmdb_id" placeholder="TMDB ID" required />
               <input className={fieldClass} defaultValue={list.items.length} min={0} name="position" type="number" required />
               <input className={fieldClass} name="note" placeholder="Nota opcional" />
-              <button className={buttonClass} type="submit">Adicionar</button>
+              <SubmitButton className="rounded-xl" pendingLabel="Adicionando...">Adicionar</SubmitButton>
             </form>
           </Panel>
         )) : <Panel><p className="text-zinc-400">Nenhuma lista criada.</p></Panel>}
