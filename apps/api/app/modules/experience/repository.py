@@ -458,27 +458,27 @@ class ExperienceRepository:
         return night, [(int(row[0]), int(row[1])) for row in rows]
 
     async def library_rows(self, user_id: UUID) -> list[tuple[UserMovie, int]]:
-        return list(
-            (
-                await self._session.execute(
-                    select(UserMovie, Movie.tmdb_id)
-                    .join(Movie, Movie.id == UserMovie.movie_id)
-                    .where(UserMovie.user_id == user_id)
-                    .order_by(UserMovie.updated_at.desc())
-                )
-            ).all()
-        )
+        rows = (
+            await self._session.execute(
+                select(UserMovie, Movie.tmdb_id)
+                .join(Movie, Movie.id == UserMovie.movie_id)
+                .where(UserMovie.user_id == user_id)
+                .order_by(UserMovie.updated_at.desc())
+            )
+        ).all()
+        return [(row[0], int(row[1])) for row in rows]
 
     async def stats(self, user_id: UUID) -> dict[str, int | float | None]:
-        statuses = dict(
-            (
-                await self._session.execute(
-                    select(UserMovie.status, func.count(UserMovie.id))
-                    .where(UserMovie.user_id == user_id)
-                    .group_by(UserMovie.status)
-                )
-            ).all()
-        )
+        status_rows = (
+            await self._session.execute(
+                select(UserMovie.status, func.count(UserMovie.id))
+                .where(UserMovie.user_id == user_id)
+                .group_by(UserMovie.status)
+            )
+        ).all()
+        statuses: dict[str, int] = {
+            str(row[0]): int(row[1]) for row in status_rows
+        }
         aggregate = (
             await self._session.execute(
                 select(
