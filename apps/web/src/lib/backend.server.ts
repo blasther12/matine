@@ -28,9 +28,13 @@ export type LibraryMovie = z.infer<typeof libraryMovieSchema>;
 export type LibraryStatus = LibraryMovie["status"];
 
 function backendBase(): string {
-  const configured = process.env.BACKEND_URL;
-  if (configured) return configured.replace(/\/$/, "");
-  const host = process.env.VERCEL_URL ?? process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  const configured = process.env.BACKEND_URL?.trim();
+  if (configured) {
+    const base = configured.replace(/\/$/, "");
+    return base.endsWith("/api/backend") ? base : `${base}/api/backend`;
+  }
+
+  const host = process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
   return host ? `https://${host}/api/backend` : "http://localhost:3000/api/backend";
 }
 
@@ -49,7 +53,7 @@ async function profileRequest(
     cache: "no-store",
     signal: AbortSignal.timeout(8_000),
   });
-  if (response.status === 404) return null;
+  if (response.status === 404 && !init) return null;
   if (!response.ok) throw new Error(`profile_request_failed:${response.status}`);
   return profileSchema.parse(await response.json());
 }
