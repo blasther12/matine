@@ -12,7 +12,7 @@ function createContentSecurityPolicy(nonce: string): string {
       isDevelopment ? " 'unsafe-eval'" : ""
     }`,
     `style-src 'self' 'nonce-${nonce}'`,
-    "img-src 'self' blob: data:",
+    "img-src 'self' https://image.tmdb.org blob: data:",
     "font-src 'self'",
     `connect-src 'self'${isDevelopment ? " ws: wss:" : ""}`,
     "media-src 'none'",
