@@ -22,9 +22,10 @@ público do TMDB, identidade Supabase e biblioteca pessoal com autorização
 deny-by-default.
 
 > [!IMPORTANT]
-> A busca não é persistida nem registrada. A Fase 3 guarda apenas o estado que
-> o usuário escolheu para cada filme; e-mail e senha permanecem exclusivamente
-> no Supabase Auth, e a biblioteca é privada por padrão.
+> A busca não é persistida nem registrada. E-mail e senha permanecem
+> exclusivamente no Supabase Auth. Biblioteca, diário, reviews, listas,
+> preferências, círculos, estatísticas e retrospectivas são privadas por padrão;
+> compartilhamento só acontece quando o usuário escolhe uma visibilidade explícita.
 
 ## Por que Matinê?
 
@@ -44,8 +45,24 @@ deny-by-default.
   perfil mínimo e RLS deny-by-default.
 - [x] **Fase 3 — Biblioteca pessoal:** quero assistir, assistidos, abandonados,
   notas de 0,5 a 5 e favoritos, com propriedade derivada do token e RLS.
-- [ ] **Fases seguintes:** diário, reviews, listas,
-  círculos e Movie Night.
+- [x] **Fase 4 — Diary:** sessões, data, rewatch e notas privadas.
+- [x] **Fase 5 — Reviews:** edição idempotente, spoiler e visibilidade
+  privada/seguidores/pública.
+- [x] **Fase 6 — Lists:** listas ordenadas, notas por item e visibilidade.
+- [x] **Fase 7 — Social:** follow por username e feed limitado ao conteúdo
+  explicitamente compartilhado.
+- [x] **Fase 8 — Streaming:** preferências escolhidas pelo usuário e filtro de
+  disponibilidade BR via JustWatch/TMDB.
+- [x] **Fase 9 — Circles:** grupos privados com membership controlado pelo owner.
+- [x] **Fase 10 — Movie Match:** compatibilidade calculada por watchlists do
+  círculo, com score e motivo legíveis.
+- [x] **Fase 11 — Movie Night:** candidatos, voto único por membro e placar.
+- [x] **Fase 12 — Recommendations:** ranking heurístico explicável, sem perfil
+  oculto, ML ou LLM.
+- [x] **Fase 13 — Stats:** contagens e média derivadas sob demanda.
+- [x] **Fase 14 — Wrapped:** retrospectiva anual derivada do diário/reviews.
+- [x] **Fase 15 — PWA:** manifest, instalação e fallback offline que nunca
+  armazena dados privados.
 
 ## Arquitetura
 
