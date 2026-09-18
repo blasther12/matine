@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 
 import { addDiaryEntry } from "@/app/features/actions";
-import { ExperienceShell, Panel, buttonClass, fieldClass } from "@/components/experience-shell";
+import { ExperienceShell, Panel, fieldClass } from "@/components/experience-shell";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { requireAccessToken } from "@/lib/auth.server";
 import { experienceApi } from "@/lib/experience.server";
 
@@ -20,7 +21,7 @@ export default async function DiaryPage() {
             <label className="block text-sm text-zinc-300">Data<input className={fieldClass} name="watched_at" type="date" required /></label>
             <label className="block text-sm text-zinc-300">Notas<textarea className={fieldClass} maxLength={2000} name="notes" rows={4} /></label>
             <label className="flex gap-2 text-sm text-zinc-300"><input name="rewatch" type="checkbox" /> Reassistido</label>
-            <button className={buttonClass} type="submit">Adicionar ao diário</button>
+            <SubmitButton className="rounded-xl" pendingLabel="Adicionando...">Adicionar ao diário</SubmitButton>
           </form>
         </Panel>
         <div className="space-y-4">
