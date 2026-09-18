@@ -14,6 +14,7 @@ from app.modules.experience.models import (
     MovieListItem,
     MovieNight,
     MovieNightCandidate,
+    MovieNightVeto,
     MovieNightVote,
     Review,
     StreamingPreference,
@@ -274,6 +275,36 @@ class ExperienceRepository:
         await self._session.flush()
         return providers
 
+    async def circle_streaming_summary(
+        self, circle_id: UUID
+    ) -> tuple[int, int, dict[str, int]]:
+        members = await self.circle_members(circle_id)
+        if not members:
+            return 0, 0, {}
+
+        configured_members = int(
+            (
+                await self._session.execute(
+                    select(func.count(func.distinct(StreamingPreference.user_id))).where(
+                        StreamingPreference.user_id.in_(members)
+                    )
+                )
+            ).scalar_one()
+        )
+        provider_rows = (
+            await self._session.execute(
+                select(
+                    StreamingPreference.provider_name,
+                    func.count(func.distinct(StreamingPreference.user_id)),
+                )
+                .where(StreamingPreference.user_id.in_(members))
+                .group_by(StreamingPreference.provider_name)
+                .order_by(func.count(func.distinct(StreamingPreference.user_id)).desc())
+            )
+        ).all()
+        providers = {str(row[0]): int(row[1]) for row in provider_rows}
+        return len(members), configured_members, providers
+
     async def create_circle(self, user_id: UUID, name: str) -> Circle:
         circle = Circle(owner_user_id=user_id, name=name)
         self._session.add(circle)
@@ -359,13 +390,23 @@ class ExperienceRepository:
         ).all()
         return len(members), [(int(row[0]), int(row[1])) for row in rows]
 
-    async def create_night(self, circle_id: UUID, user_id: UUID, title: str) -> MovieNight | None:
+    async def create_night(
+        self,
+        circle_id: UUID,
+        user_id: UUID,
+        title: str,
+        *,
+        max_runtime_minutes: int | None,
+        preferred_genres: list[str],
+    ) -> MovieNight | None:
         if await self.circle_role(circle_id, user_id) is None:
             return None
         night = MovieNight(
             circle_id=circle_id,
             created_by_user_id=user_id,
             title=title,
+            max_runtime_minutes=max_runtime_minutes,
+            preferred_genres=",".join(preferred_genres),
         )
         self._session.add(night)
         await self._session.flush()
@@ -430,12 +471,61 @@ class ExperienceRepository:
         )
         return True
 
+    async def set_veto(
+        self,
+        night_id: UUID,
+        user_id: UUID,
+        tmdb_id: int,
+        *,
+        enabled: bool,
+    ) -> bool:
+        night = await self.night_for_member(night_id, user_id)
+        if night is None or night.status != "OPEN":
+            return False
+
+        movie_id = (
+            await self._session.execute(
+                select(Movie.id)
+                .join(
+                    MovieNightCandidate,
+                    MovieNightCandidate.movie_id == Movie.id,
+                )
+                .where(
+                    MovieNightCandidate.night_id == night_id,
+                    Movie.tmdb_id == tmdb_id,
+                )
+            )
+        ).scalar_one_or_none()
+        if movie_id is None:
+            return False
+
+        if enabled:
+            await self._session.execute(
+                insert(MovieNightVeto)
+                .values(
+                    night_id=night_id,
+                    user_id=user_id,
+                    movie_id=movie_id,
+                )
+                .on_conflict_do_nothing()
+            )
+        else:
+            await self._session.execute(
+                delete(MovieNightVeto).where(
+                    MovieNightVeto.night_id == night_id,
+                    MovieNightVeto.user_id == user_id,
+                    MovieNightVeto.movie_id == movie_id,
+                )
+            )
+        return True
+
     async def night_results(
         self, night_id: UUID, user_id: UUID
-    ) -> tuple[MovieNight | None, list[tuple[int, int]]]:
+    ) -> tuple[MovieNight | None, list[tuple[int, int, bool, bool]]]:
         night = await self.night_for_member(night_id, user_id)
         if night is None:
             return None, []
+
         rows = (
             await self._session.execute(
                 select(
@@ -448,14 +538,35 @@ class ExperienceRepository:
                 )
                 .outerjoin(
                     MovieNightVote,
-                    (MovieNightVote.night_id == night_id) & (MovieNightVote.movie_id == Movie.id),
+                    (MovieNightVote.night_id == night_id)
+                    & (MovieNightVote.movie_id == Movie.id),
                 )
                 .where(MovieNightCandidate.night_id == night_id)
                 .group_by(Movie.tmdb_id)
                 .order_by(func.count(MovieNightVote.id).desc(), Movie.tmdb_id)
             )
         ).all()
-        return night, [(int(row[0]), int(row[1])) for row in rows]
+
+        veto_rows = (
+            await self._session.execute(
+                select(Movie.tmdb_id, MovieNightVeto.user_id)
+                .join(MovieNightVeto, MovieNightVeto.movie_id == Movie.id)
+                .where(MovieNightVeto.night_id == night_id)
+            )
+        ).all()
+        vetoes: dict[int, set[UUID]] = {}
+        for tmdb_id, veto_user_id in veto_rows:
+            vetoes.setdefault(int(tmdb_id), set()).add(veto_user_id)
+
+        return night, [
+            (
+                int(row[0]),
+                int(row[1]),
+                bool(vetoes.get(int(row[0]))),
+                user_id in vetoes.get(int(row[0]), set()),
+            )
+            for row in rows
+        ]
 
     async def library_rows(self, user_id: UUID) -> list[tuple[UserMovie, int]]:
         rows = (
