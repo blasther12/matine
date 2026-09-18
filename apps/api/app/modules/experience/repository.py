@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
-from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import delete, func, select
