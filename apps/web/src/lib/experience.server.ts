@@ -54,6 +54,17 @@ const feedItemSchema = z.object({
 
 const streamingSchema = z.object({ providers: z.array(z.string()) });
 
+const circleStreamingSchema = z.object({
+  member_count: z.number().int(),
+  configured_members: z.number().int(),
+  providers: z.array(
+    z.object({
+      provider: z.string(),
+      members: z.number().int(),
+    }),
+  ),
+});
+
 const circleSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
@@ -66,8 +77,16 @@ const matchSchema = z.object({
   tmdb_id: z.number().int(),
   title: z.string().nullable(),
   poster_path: z.string().nullable(),
+  runtime_minutes: z.number().int().nullable().optional(),
+  genres: z.array(z.string()),
   interested_members: z.number().int(),
   member_count: z.number().int(),
+  streaming_ready_members: z.number().int(),
+  streaming_configured_members: z.number().int(),
+  streaming_provider: z.string().nullable(),
+  streaming_checked: z.boolean(),
+  fits_context: z.boolean(),
+  context_reasons: z.array(z.string()),
   score: z.number(),
   reason: z.string(),
 });
@@ -107,11 +126,17 @@ const nightSchema = z.object({
   circle_id: z.string().uuid(),
   title: z.string(),
   status: z.string(),
-  results: z.array(z.object({
-    tmdb_id: z.number().int(),
-    title: z.string().nullable(),
-    votes: z.number().int(),
-  })),
+  max_runtime_minutes: z.number().int().nullable(),
+  preferred_genres: z.array(z.string()),
+  results: z.array(
+    z.object({
+      tmdb_id: z.number().int(),
+      title: z.string().nullable(),
+      votes: z.number().int(),
+      vetoed: z.boolean(),
+      my_veto: z.boolean(),
+    }),
+  ),
   created_at: z.string(),
 });
 
@@ -120,6 +145,7 @@ export type Review = z.infer<typeof reviewSchema>;
 export type MovieList = z.infer<typeof movieListSchema>;
 export type FeedItem = z.infer<typeof feedItemSchema>;
 export type Circle = z.infer<typeof circleSchema>;
+export type CircleStreaming = z.infer<typeof circleStreamingSchema>;
 export type MatchItem = z.infer<typeof matchSchema>;
 export type Recommendation = z.infer<typeof recommendationSchema>;
 export type Stats = z.infer<typeof statsSchema>;
@@ -135,7 +161,7 @@ async function request<T>(
   token: string,
   path: string,
   schema: z.ZodType<T>,
-  init?: { method?: "POST"; body?: unknown },
+  init?: { method?: "POST" | "DELETE"; body?: unknown },
 ): Promise<T> {
   const response = await fetch(`${backendBase()}${path}`, {
     method: init?.method ?? "GET",
@@ -180,14 +206,26 @@ export const experienceApi = {
     request(token, "/me/circles", circleSchema, { method: "POST", body }),
   addCircleMember: (token: string, circleId: string, body: unknown) =>
     request(token, `/me/circles/${circleId}/members`, nothing, { method: "POST", body }),
-  match: (token: string, circleId: string) =>
-    request(token, `/me/circles/${circleId}/match`, z.array(matchSchema)),
+  circleStreaming: (token: string, circleId: string) =>
+    request(token, `/me/circles/${circleId}/streaming`, circleStreamingSchema),
+  match: (token: string, circleId: string, nightId?: string) =>
+    request(
+      token,
+      `/me/circles/${circleId}/match${
+        nightId ? `?night_id=${encodeURIComponent(nightId)}` : ""
+      }`,
+      z.array(matchSchema),
+    ),
   createNight: (token: string, circleId: string, body: unknown) =>
     request(token, `/me/circles/${circleId}/movie-nights`, nightSchema, { method: "POST", body }),
   addCandidate: (token: string, nightId: string, body: unknown) =>
     request(token, `/me/movie-nights/${nightId}/candidates`, nothing, { method: "POST", body }),
   vote: (token: string, nightId: string, body: unknown) =>
     request(token, `/me/movie-nights/${nightId}/vote`, nothing, { method: "POST", body }),
+  veto: (token: string, nightId: string, body: unknown) =>
+    request(token, `/me/movie-nights/${nightId}/veto`, nothing, { method: "POST", body }),
+  removeVeto: (token: string, nightId: string, body: unknown) =>
+    request(token, `/me/movie-nights/${nightId}/veto`, nothing, { method: "DELETE", body }),
   night: (token: string, nightId: string) =>
     request(token, `/me/movie-nights/${nightId}`, nightSchema),
   recommendations: (token: string) =>
