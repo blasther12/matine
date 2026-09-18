@@ -25,9 +25,7 @@ class ExternalCacheRepository:
             return None
         return entry.payload
 
-    async def get_many(
-        self, provider: str, keys: list[str]
-    ) -> dict[str, dict[str, Any]]:
+    async def get_many(self, provider: str, keys: list[str]) -> dict[str, dict[str, Any]]:
         if not keys:
             return {}
         rows = (
