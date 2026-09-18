@@ -46,10 +46,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
 
     install_error_handlers(app)
-    app.include_router(health_router)
-    app.include_router(movies_router)
-    app.include_router(users_router)
-    app.include_router(library_router)
+    route_prefix = "/api/backend" if resolved_settings.vercel_env is not None else ""
+    app.include_router(health_router, prefix=route_prefix)
+    app.include_router(movies_router, prefix=route_prefix)
+    app.include_router(users_router, prefix=route_prefix)
+    app.include_router(library_router, prefix=route_prefix)
 
     app.add_middleware(
         CORSMiddleware,
