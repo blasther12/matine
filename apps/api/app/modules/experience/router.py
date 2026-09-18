@@ -234,7 +234,7 @@ async def movie_match(
     circle_id: UUID,
     identity: Identity,
     service: Service,
-    night_id: UUID | None = Query(default=None),
+    night_id: Annotated[UUID | None, Query()] = None,
 ) -> list[MatchItem]:
     try:
         return await service.match(identity, circle_id, night_id)
