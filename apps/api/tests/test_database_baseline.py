@@ -1,12 +1,23 @@
 from app.core.database import Base
 
 
-def test_phase_three_metadata_contains_cache_profile_and_private_library() -> None:
+def test_phase_fifteen_metadata_contains_private_experience_tables() -> None:
     assert set(Base.metadata.tables) == {
         "external_cache",
         "users",
         "movies",
         "user_movies",
+        "watch_entries",
+        "reviews",
+        "movie_lists",
+        "movie_list_items",
+        "follows",
+        "streaming_preferences",
+        "circles",
+        "circle_members",
+        "movie_nights",
+        "movie_night_candidates",
+        "movie_night_votes",
     }
     columns = set(Base.metadata.tables["external_cache"].columns.keys())
     assert columns == {
