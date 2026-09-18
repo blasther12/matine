@@ -17,6 +17,7 @@ def test_phase_fifteen_metadata_contains_private_experience_tables() -> None:
         "circle_members",
         "movie_nights",
         "movie_night_candidates",
+        "movie_night_vetoes",
         "movie_night_votes",
     }
     columns = set(Base.metadata.tables["external_cache"].columns.keys())
