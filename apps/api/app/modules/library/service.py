@@ -1,9 +1,12 @@
 from decimal import Decimal
 from uuid import UUID
 
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentIdentity
+from app.integrations.tmdb.repository import ExternalCacheRepository
+from app.modules.movies.schemas import MovieDetailsResponse
 from app.modules.library.repository import LibraryRecord, LibraryRepository
 from app.modules.library.schemas import (
     LibraryMovieCreate,
@@ -28,6 +31,7 @@ class LibraryService:
         self._session = session
         self._users = UserRepository(session)
         self._library = LibraryRepository(session)
+        self._cache = ExternalCacheRepository(session)
 
     async def list_movies(
         self, identity: CurrentIdentity, *, status: MovieStatus | None = None
@@ -36,7 +40,19 @@ class LibraryService:
         records = await self._library.list_for_user(
             user_id, status=status.value if status is not None else None
         )
-        return LibraryMovieListResponse(items=[self._response(record) for record in records])
+        keys = [self._details_cache_key(record.tmdb_id) for record in records]
+        cached = await self._cache.get_many("tmdb", keys)
+        items: list[LibraryMovieResponse] = []
+        for record in records:
+            details = None
+            payload = cached.get(self._details_cache_key(record.tmdb_id))
+            if payload is not None:
+                try:
+                    details = MovieDetailsResponse.model_validate(payload)
+                except ValidationError:
+                    details = None
+            items.append(self._response(record, details))
+        return LibraryMovieListResponse(items=items)
 
     async def get_movie(self, identity: CurrentIdentity, tmdb_id: int) -> LibraryMovieResponse:
         user_id = await self._user_id(identity)
@@ -99,12 +115,22 @@ class LibraryService:
         return None if value is None else Decimal(str(value))
 
     @staticmethod
-    def _response(record: LibraryRecord) -> LibraryMovieResponse:
+    def _details_cache_key(tmdb_id: int) -> str:
+        return f"movie:details:v1:pt-BR:{tmdb_id}"
+
+    @staticmethod
+    def _response(
+        record: LibraryRecord,
+        details: MovieDetailsResponse | None = None,
+    ) -> LibraryMovieResponse:
         return LibraryMovieResponse(
             tmdb_id=record.tmdb_id,
             status=MovieStatus(record.status),
             rating=float(record.rating) if record.rating is not None else None,
             favorite=record.favorite,
+            title=details.title if details is not None else None,
+            year=details.year if details is not None else None,
+            poster_path=details.poster_path if details is not None else None,
             created_at=record.created_at,
             updated_at=record.updated_at,
         )
