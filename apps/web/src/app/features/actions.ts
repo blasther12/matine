@@ -121,8 +121,26 @@ export async function addCircleMember(formData: FormData): Promise<void> {
 export async function createMovieNight(formData: FormData): Promise<void> {
   const circleId = text(formData, "circle_id");
   const title = text(formData, "title");
-  if (!/^[0-9a-f-]{36}$/i.test(circleId) || !title) return;
-  const night = await experienceApi.createNight(await token(), circleId, { title });
+  const runtimeRaw = text(formData, "max_runtime_minutes");
+  const runtime = runtimeRaw ? Number(runtimeRaw) : null;
+  const preferredGenres = text(formData, "preferred_genres")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .slice(0, 5);
+
+  if (
+    !/^[0-9a-f-]{36}$/i.test(circleId) ||
+    !title ||
+    (runtime !== null &&
+      (!Number.isInteger(runtime) || runtime < 30 || runtime > 600))
+  ) return;
+
+  const night = await experienceApi.createNight(await token(), circleId, {
+    title,
+    max_runtime_minutes: runtime,
+    preferred_genres: preferredGenres,
+  });
   redirect(`/circles?circle=${circleId}&night=${night.id}`);
 }
 
@@ -139,5 +157,22 @@ export async function voteMovieNight(formData: FormData): Promise<void> {
   const tmdbId = positiveInt(text(formData, "tmdb_id"));
   if (!/^[0-9a-f-]{36}$/i.test(nightId) || tmdbId === null) return;
   await experienceApi.vote(await token(), nightId, { tmdb_id: tmdbId });
+  revalidatePath("/circles");
+}
+
+
+export async function vetoMovieNightCandidate(formData: FormData): Promise<void> {
+  const nightId = text(formData, "night_id");
+  const tmdbId = positiveInt(text(formData, "tmdb_id"));
+  if (!/^[0-9a-f-]{36}$/i.test(nightId) || tmdbId === null) return;
+  await experienceApi.veto(await token(), nightId, { tmdb_id: tmdbId });
+  revalidatePath("/circles");
+}
+
+export async function removeMovieNightVeto(formData: FormData): Promise<void> {
+  const nightId = text(formData, "night_id");
+  const tmdbId = positiveInt(text(formData, "tmdb_id"));
+  if (!/^[0-9a-f-]{36}$/i.test(nightId) || tmdbId === null) return;
+  await experienceApi.removeVeto(await token(), nightId, { tmdb_id: tmdbId });
   revalidatePath("/circles");
 }
