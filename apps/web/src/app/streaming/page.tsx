@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { saveStreamingPreferences } from "@/app/features/actions";
 import { ExperienceShell, Panel, buttonClass, fieldClass } from "@/components/experience-shell";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { requireAccessToken } from "@/lib/auth.server";
 import { getMovieProviders } from "@/lib/api";
 import { experienceApi } from "@/lib/experience.server";
@@ -27,7 +28,7 @@ export default async function StreamingPage({ searchParams }: Props) {
         <Panel>
           <form action={saveStreamingPreferences} className="space-y-4">
             <label className="block text-sm text-zinc-300">Serviços que você usa, separados por vírgula<input className={fieldClass} defaultValue={preferences.providers.join(", ")} name="providers" placeholder="Netflix, Prime Video, Max" /></label>
-            <button className={buttonClass} type="submit">Salvar preferências</button>
+            <SubmitButton className="rounded-xl" pendingLabel="Salvando...">Salvar preferências</SubmitButton>
           </form>
           <p className="mt-4 text-xs leading-5 text-zinc-500">Escolha manual. O Matinê não infere suas assinaturas nem dados de cobrança.</p>
         </Panel>
