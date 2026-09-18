@@ -1,4 +1,4 @@
-# API: Phase 3
+# API: Phase 15
 
 Catalog routes are public and read-only. Account routes are private, JSON-only,
 and require a validated Supabase bearer token. Errors use a stable shape:
@@ -51,3 +51,23 @@ excluded from application logs.
 In development, the schema is available at `/openapi.json`. Interactive docs
 and the OpenAPI route are disabled in production. The checked-in API tests are
 the executable contract and run without a real TMDB token.
+
+
+## Experience endpoints, phases 4–14
+
+| Phase | Endpoints | Privacy rule |
+| --- | --- | --- |
+| 4 Diary | `GET/POST /me/diary` | owner only; notes private |
+| 5 Reviews | `GET/POST /me/reviews` | defaults to `PRIVATE`; explicit visibility |
+| 6 Lists | `GET/POST /me/lists`, `POST /me/lists/{id}/items` | defaults private |
+| 7 Social | `POST /social/follow`, `GET /social/feed` | feed sees public or followed `FOLLOWERS` reviews only |
+| 8 Streaming | `GET/POST /me/streaming` | stores only user-chosen provider names |
+| 9 Circles | `GET/POST /me/circles`, `POST /me/circles/{id}/members` | membership checked server-side |
+| 10 Match | `GET /me/circles/{id}/match` | computed from circle watchlists with an explanation |
+| 11 Movie Night | create night, add candidate, vote, get results | members only; one current vote per member |
+| 12 Recommendations | `GET /me/recommendations` | heuristic, explainable, derived on demand |
+| 13 Stats | `GET /me/stats` | private aggregate only |
+| 14 Wrapped | `GET /me/wrapped?year=` | private yearly aggregate only |
+
+The PWA phase adds no API. Offline fallback never persists authenticated
+responses or private user data in the service-worker cache.
