@@ -5,6 +5,8 @@ from pydantic import ValidationError
 from app.modules.experience.schemas import (
     DiaryCreate,
     MovieListCreate,
+    MovieNightCreate,
+    MovieNightVetoCreate,
     ReviewUpsert,
     StreamingPreferences,
 )
@@ -20,6 +22,7 @@ from app.modules.experience.schemas import (
         "/social/feed",
         "/me/streaming",
         "/me/circles",
+        "/me/circles/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/streaming",
         "/me/recommendations",
         "/me/stats",
         "/me/wrapped?year=2026",
@@ -79,3 +82,27 @@ def test_streaming_preferences_are_minimized_and_deduplicated() -> None:
     value = StreamingPreferences(providers=[" Netflix ", "netflix", "", "Prime Video"])
 
     assert value.providers == ["Netflix", "Prime Video"]
+
+
+def test_movie_night_context_is_normalized_and_bounded() -> None:
+    value = MovieNightCreate(
+        title="Sexta de terror",
+        max_runtime_minutes=120,
+        preferred_genres=[" Terror ", "terror", "Suspense"],
+    )
+
+    assert value.max_runtime_minutes == 120
+    assert value.preferred_genres == ["Terror", "Suspense"]
+
+    with pytest.raises(ValidationError):
+        MovieNightCreate(title="Longa demais", max_runtime_minutes=900)
+
+
+def test_private_veto_payload_never_accepts_client_ownership() -> None:
+    with pytest.raises(ValidationError):
+        MovieNightVetoCreate.model_validate(
+            {
+                "tmdb_id": 550,
+                "user_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            }
+        )
