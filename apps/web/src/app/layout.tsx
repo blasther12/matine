@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 
+import { PwaRegister } from "@/components/pwa-register";
 import { QueryProvider } from "@/components/query-provider";
 
 import "./globals.css";
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
   return (
     <html lang="pt-BR">
       <body>
+        <PwaRegister />
         <QueryProvider>{children}</QueryProvider>
       </body>
     </html>
