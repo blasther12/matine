@@ -47,7 +47,7 @@ describe("catalog helpers", () => {
   });
 
   it("uses the Vercel Services backend URL during server rendering", async () => {
-    vi.stubEnv("BACKEND_URL", "https://matine.example/api/backend");
+    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "matine.example");
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -71,7 +71,7 @@ describe("catalog helpers", () => {
   });
 
   it("rejects credential-bearing backend URLs", async () => {
-    vi.stubEnv("BACKEND_URL", "https://user:password@matine.example/api/backend");
+    vi.stubEnv("API_INTERNAL_URL", "https://user:password@matine.example/api/backend");
     await expect(searchMovies("Alien")).rejects.toThrow("API base must be an HTTP(S) URL");
   });
 });
