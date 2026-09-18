@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { finishProfile, signOut } from "@/app/auth/actions";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { getProfile } from "@/lib/backend.server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -30,7 +31,7 @@ export default async function AccountPage({ searchParams }: Props) {
       <section className="mx-auto max-w-3xl rounded-3xl border border-white/10 bg-zinc-950/85 p-6 shadow-2xl sm:p-10">
         <div className="flex items-center justify-between gap-4">
           <Link className="text-sm text-amber-200 hover:text-amber-100" href="/">← Início</Link>
-          <form action={signOut}><button className="text-sm text-zinc-400 hover:text-white" type="submit">Sair</button></form>
+          <form action={signOut}><SubmitButton className="min-h-8 rounded-lg px-3 py-1 text-xs" pendingLabel="Saindo..." variant="secondary">Sair</SubmitButton></form>
         </div>
         {profile ? (
           <div className="mt-10">
@@ -45,7 +46,7 @@ export default async function AccountPage({ searchParams }: Props) {
             <div><p className="font-mono text-xs tracking-[0.2em] text-amber-200 uppercase">Primeiro acesso</p><h1 className="mt-3 font-serif text-4xl text-white">Crie seu perfil privado</h1></div>
             <label className="block text-sm text-zinc-300">Nome de usuário<input className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white" name="username" pattern="[a-zA-Z0-9_]{3,30}" minLength={3} maxLength={30} required /></label>
             <label className="block text-sm text-zinc-300">Nome de exibição<input className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white" name="display_name" minLength={1} maxLength={80} required /></label>
-            <button className="rounded-xl bg-amber-300 px-5 py-3 font-semibold text-zinc-950" type="submit">Salvar perfil</button>
+            <SubmitButton className="rounded-xl" pendingLabel="Salvando perfil...">Salvar perfil</SubmitButton>
             {state.error ? <p role="alert" className="text-sm text-red-200">Nome indisponível ou serviço temporariamente indisponível.</p> : null}
           </form>
         )}
