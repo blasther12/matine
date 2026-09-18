@@ -7,7 +7,7 @@ import { removeLibraryMovie } from "@/app/library/actions";
 import { Badge } from "@/components/ui/badge";
 import { buttonClassName } from "@/components/ui/button";
 import { getLibrary, getProfile, type LibraryStatus } from "@/lib/backend.server";
-import { getMovieDetails, tmdbImageUrl, type MovieDetails } from "@/lib/api";
+import { tmdbImageUrl } from "@/lib/api";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Minha biblioteca" };
@@ -34,14 +34,6 @@ export default async function LibraryPage({ searchParams }: Props) {
   const token = sessionData.session.access_token;
   const [profile, library] = await Promise.all([getProfile(token), getLibrary(token, filter)]);
   if (!profile || library === null) redirect("/account");
-
-  const details = await Promise.allSettled(
-    library.slice(0, 48).map((entry) => getMovieDetails(entry.tmdb_id)),
-  );
-  const movies = new Map<number, MovieDetails>();
-  for (const result of details) {
-    if (result.status === "fulfilled") movies.set(result.value.tmdb_id, result.value);
-  }
 
   return (
     <main className="film-grain min-h-screen bg-background text-foreground">
@@ -81,21 +73,20 @@ export default async function LibraryPage({ searchParams }: Props) {
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {library.map((entry) => {
-              const movie = movies.get(entry.tmdb_id);
-              const poster = tmdbImageUrl(movie?.poster_path ?? null, "w342");
+              const poster = tmdbImageUrl(entry.poster_path ?? null, "w342");
               return (
                 <article className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025]" key={entry.tmdb_id}>
                   <Link className="block" href={`/movie/${entry.tmdb_id}`}>
                     <div className="relative aspect-[2/3] bg-zinc-900">
-                      {poster ? <Image alt={`Pôster de ${movie?.title ?? "filme"}`} className="object-cover" fill sizes="(max-width: 640px) 100vw, 342px" src={poster} /> : <div className="grid h-full place-items-center px-6 text-center font-serif text-2xl text-zinc-600">{movie?.title ?? `Filme #${entry.tmdb_id}`}</div>}
+                      {poster ? <Image alt={`Pôster de ${entry.title ?? "filme"}`} className="object-cover" fill loading="lazy" sizes="(max-width: 640px) 100vw, 342px" src={poster} /> : <div className="grid h-full place-items-center px-6 text-center font-serif text-2xl text-zinc-600">{entry.title ?? `Filme #${entry.tmdb_id}`}</div>}
                       {entry.favorite ? <span className="absolute right-3 top-3 rounded-full bg-black/75 px-3 py-1 text-amber-200" aria-label="Favorito">★</span> : null}
                     </div>
                   </Link>
                   <div className="p-5">
                     <p className="text-xs font-medium tracking-[0.12em] text-amber-200 uppercase">{labels[entry.status]}</p>
-                    <h2 className="mt-2 line-clamp-2 font-serif text-2xl text-white">{movie?.title ?? `Filme #${entry.tmdb_id}`}</h2>
+                    <h2 className="mt-2 line-clamp-2 font-serif text-2xl text-white">{entry.title ?? `Filme #${entry.tmdb_id}`}</h2>
                     <div className="mt-3 flex items-center justify-between text-xs text-zinc-500">
-                      <span>{movie?.year ?? "Ano indisponível"}</span>
+                      <span>{entry.year ?? "Ano indisponível"}</span>
                       <span>{entry.rating ? `★ ${entry.rating.toFixed(1)}` : "Sem nota"}</span>
                     </div>
                     <form action={removeLibraryMovie} className="mt-5 border-t border-white/[0.07] pt-4">
