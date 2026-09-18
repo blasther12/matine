@@ -124,10 +124,11 @@ function validatedApiBase(value: string): string {
 }
 
 function serverApiBase(): string {
-  const configured = process.env.API_INTERNAL_URL ?? process.env.BACKEND_URL;
-  if (configured) return validatedApiBase(configured);
+  const internal = process.env.API_INTERNAL_URL?.trim();
+  if (internal) return validatedApiBase(internal);
 
-  const vercelHost = process.env.VERCEL_URL ?? process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  const vercelHost =
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
   const origin = vercelHost ? `https://${vercelHost}` : "http://localhost:3000";
   return `${origin}/api/backend`;
 }
