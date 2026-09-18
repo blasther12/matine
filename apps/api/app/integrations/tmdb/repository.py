@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.integrations.tmdb.models import ExternalCache
@@ -23,6 +24,22 @@ class ExternalCacheRepository:
             await self._session.flush()
             return None
         return entry.payload
+
+    async def get_many(
+        self, provider: str, keys: list[str]
+    ) -> dict[str, dict[str, Any]]:
+        if not keys:
+            return {}
+        rows = (
+            await self._session.execute(
+                select(ExternalCache).where(
+                    ExternalCache.provider == provider,
+                    ExternalCache.cache_key.in_(keys),
+                    ExternalCache.expires_at > datetime.now(UTC),
+                )
+            )
+        ).scalars()
+        return {row.cache_key: row.payload for row in rows}
 
     async def put(
         self,
