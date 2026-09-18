@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentIdentity
 from app.integrations.tmdb.repository import ExternalCacheRepository
-from app.modules.movies.schemas import MovieDetailsResponse
 from app.modules.library.repository import LibraryRecord, LibraryRepository
 from app.modules.library.schemas import (
     LibraryMovieCreate,
@@ -15,6 +14,7 @@ from app.modules.library.schemas import (
     LibraryMovieUpdate,
     MovieStatus,
 )
+from app.modules.movies.schemas import MovieDetailsResponse
 from app.modules.users.repository import UserRepository
 
 
