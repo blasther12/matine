@@ -18,6 +18,9 @@ const libraryMovieSchema = z.object({
   status: z.enum(["WATCHLIST", "WATCHED", "DROPPED"]),
   rating: z.number().min(0.5).max(5).nullable(),
   favorite: z.boolean(),
+  title: z.string().nullable().optional(),
+  year: z.number().int().nullable().optional(),
+  poster_path: z.string().nullable().optional(),
   created_at: z.string(),
   updated_at: z.string(),
 });
