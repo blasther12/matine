@@ -185,6 +185,11 @@ class MovieNight(Base):
     __tablename__ = "movie_nights"
     __table_args__ = (
         CheckConstraint("status IN ('OPEN', 'CLOSED')", name="ck_movie_nights_status"),
+        CheckConstraint(
+            "max_runtime_minutes IS NULL OR "
+            "(max_runtime_minutes >= 30 AND max_runtime_minutes <= 600)",
+            name="ck_movie_nights_max_runtime",
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
