@@ -43,6 +43,9 @@ class LibraryMovieResponse(BaseModel):
     status: MovieStatus
     rating: float | None
     favorite: bool
+    title: str | None = Field(default=None, max_length=500)
+    year: int | None = Field(default=None, ge=1870, le=2200)
+    poster_path: str | None = Field(default=None, max_length=255)
     created_at: datetime
     updated_at: datetime
 
