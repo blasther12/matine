@@ -40,3 +40,24 @@ performs every library query with that server-derived owner.
 - Phase 3 adds the `movies` identity table and private `user_movies` state.
   Catalog metadata remains in the public TTL cache and is not duplicated into
   the personal domain.
+
+
+## Phases 4–15
+
+The later product phases remain inside the modular monolith:
+
+- phases 4–6 persist diary, reviews and ordered lists;
+- phase 7 exposes only explicitly shared reviews to the social feed;
+- phase 8 stores user-selected streaming preferences and keeps provider data in
+  the public TMDB/JustWatch boundary;
+- phases 9–11 implement private circles, explainable matching and Movie Night
+  voting with server-derived membership;
+- phases 12–14 derive recommendations, stats and Wrapped on demand instead of
+  storing opaque behavioral profiles;
+- phase 15 adds an installable PWA. Its service worker caches only the offline
+  shell and never caches library, diary, reviews, circles, stats or API responses.
+
+All phase 4–14 tables have PostgreSQL RLS enabled and browser roles have no
+direct table grants. FastAPI validates the Supabase identity and derives the
+internal owner for every mutation. Client-supplied ownership identifiers are
+not part of the contracts.
