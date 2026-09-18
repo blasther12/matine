@@ -84,9 +84,7 @@ class ExperienceService:
     def _night_genres(value: str) -> list[str]:
         return [item for item in value.split(",") if item]
 
-    async def _provider_metadata(
-        self, tmdb_ids: list[int]
-    ) -> dict[int, MovieProvidersResponse]:
+    async def _provider_metadata(self, tmdb_ids: list[int]) -> dict[int, MovieProvidersResponse]:
         keys = [self._providers_cache_key(value) for value in tmdb_ids]
         cached = await self._cache.get_many("tmdb", keys)
         result: dict[int, MovieProvidersResponse] = {}
@@ -278,15 +276,14 @@ class ExperienceService:
         user = await self._user(identity)
         if await self._repo.circle_role(circle_id, user.id) is None:
             raise ExperienceForbiddenError
-        member_count, configured_members, providers = (
-            await self._repo.circle_streaming_summary(circle_id)
+        member_count, configured_members, providers = await self._repo.circle_streaming_summary(
+            circle_id
         )
         return CircleStreamingSummary(
             member_count=member_count,
             configured_members=configured_members,
             providers=[
-                StreamingCoverage(provider=name, members=count)
-                for name, count in providers.items()
+                StreamingCoverage(provider=name, members=count) for name, count in providers.items()
             ],
         )
 
@@ -310,15 +307,13 @@ class ExperienceService:
         ids = [tmdb_id for tmdb_id, _ in candidates]
         metadata = await self._metadata(ids)
         provider_metadata = await self._provider_metadata(ids)
-        _, configured_members, provider_counts = (
-            await self._repo.circle_streaming_summary(circle_id)
+        _, configured_members, provider_counts = await self._repo.circle_streaming_summary(
+            circle_id
         )
         normalized_provider_counts = {
             name.casefold(): (name, count) for name, count in provider_counts.items()
         }
-        preferred_genres = (
-            self._night_genres(night.preferred_genres) if night is not None else []
-        )
+        preferred_genres = self._night_genres(night.preferred_genres) if night is not None else []
 
         items: list[MatchItem] = []
         for tmdb_id, interested in candidates:
@@ -346,14 +341,10 @@ class ExperienceService:
             if preferred_genres and details is not None:
                 movie_genres = {genre.name.casefold() for genre in details.genres}
                 matched_genres = [
-                    genre
-                    for genre in preferred_genres
-                    if genre.casefold() in movie_genres
+                    genre for genre in preferred_genres if genre.casefold() in movie_genres
                 ]
                 if matched_genres:
-                    context_reasons.append(
-                        "combina com " + ", ".join(matched_genres[:2])
-                    )
+                    context_reasons.append("combina com " + ", ".join(matched_genres[:2]))
                 else:
                     fits_context = False
                     context_reasons.append("fora dos gêneros escolhidos para hoje")
@@ -391,8 +382,7 @@ class ExperienceService:
             reasons = [f"{interested} de {member_count} membros querem assistir"]
             if streaming_provider is not None:
                 reasons.append(
-                    f"pelo menos {streaming_ready_members} membros têm "
-                    f"{streaming_provider}"
+                    f"pelo menos {streaming_ready_members} membros têm {streaming_provider}"
                 )
             if context_reasons:
                 reasons.extend(context_reasons)
@@ -402,13 +392,9 @@ class ExperienceService:
                     tmdb_id=tmdb_id,
                     title=details.title if details is not None else None,
                     poster_path=details.poster_path if details is not None else None,
-                    runtime_minutes=(
-                        details.runtime_minutes if details is not None else None
-                    ),
+                    runtime_minutes=(details.runtime_minutes if details is not None else None),
                     genres=(
-                        [genre.name for genre in details.genres]
-                        if details is not None
-                        else []
+                        [genre.name for genre in details.genres] if details is not None else []
                     ),
                     interested_members=interested,
                     member_count=member_count,
