@@ -158,8 +158,16 @@ class MatchItem(BaseModel):
     tmdb_id: int
     title: str | None
     poster_path: str | None
+    runtime_minutes: int | None = None
+    genres: list[str] = Field(default_factory=list)
     interested_members: int
     member_count: int
+    streaming_ready_members: int = 0
+    streaming_configured_members: int = 0
+    streaming_provider: str | None = None
+    streaming_checked: bool = False
+    fits_context: bool = True
+    context_reasons: list[str] = Field(default_factory=list)
     score: float
     reason: str
 
@@ -168,6 +176,21 @@ class MovieNightCreate(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     title: str = Field(min_length=1, max_length=120)
+    max_runtime_minutes: int | None = Field(default=None, ge=30, le=600)
+    preferred_genres: list[str] = Field(default_factory=list, max_length=5)
+
+    @field_validator("preferred_genres")
+    @classmethod
+    def normalize_genres(cls, values: list[str]) -> list[str]:
+        unique: list[str] = []
+        seen: set[str] = set()
+        for raw in values:
+            value = raw.strip()[:50]
+            key = value.casefold()
+            if value and key not in seen:
+                unique.append(value)
+                seen.add(key)
+        return unique
 
 
 class MovieNightCandidateCreate(BaseModel):
@@ -180,12 +203,18 @@ class MovieNightVoteCreate(MovieNightCandidateCreate):
     pass
 
 
+class MovieNightVetoCreate(MovieNightCandidateCreate):
+    pass
+
+
 class MovieNightResultItem(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     tmdb_id: int
     title: str | None
     votes: int
+    vetoed: bool = False
+    my_veto: bool = False
 
 
 class MovieNightResponse(BaseModel):
@@ -195,8 +224,25 @@ class MovieNightResponse(BaseModel):
     circle_id: UUID
     title: str
     status: str
+    max_runtime_minutes: int | None = None
+    preferred_genres: list[str] = Field(default_factory=list)
     results: list[MovieNightResultItem]
     created_at: datetime
+
+
+class StreamingCoverage(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    provider: str
+    members: int
+
+
+class CircleStreamingSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    member_count: int
+    configured_members: int
+    providers: list[StreamingCoverage]
 
 
 class RecommendationItem(BaseModel):
