@@ -10,6 +10,7 @@ from app.core.errors import install_error_handlers
 from app.core.logging import configure_logging
 from app.core.rate_limit import InMemoryRateLimiter
 from app.core.security import RequestSecurityMiddleware
+from app.modules.experience.router import router as experience_router
 from app.modules.health.router import router as health_router
 from app.modules.library.router import router as library_router
 from app.modules.movies.router import router as movies_router
@@ -51,6 +52,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(movies_router, prefix=route_prefix)
     app.include_router(users_router, prefix=route_prefix)
     app.include_router(library_router, prefix=route_prefix)
+    app.include_router(experience_router, prefix=route_prefix)
 
     app.add_middleware(
         CORSMiddleware,
