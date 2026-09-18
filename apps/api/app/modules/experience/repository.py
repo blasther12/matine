@@ -476,9 +476,7 @@ class ExperienceRepository:
                 .group_by(UserMovie.status)
             )
         ).all()
-        statuses: dict[str, int] = {
-            str(row[0]): int(row[1]) for row in status_rows
-        }
+        statuses: dict[str, int] = {str(row[0]): int(row[1]) for row in status_rows}
         aggregate = (
             await self._session.execute(
                 select(
