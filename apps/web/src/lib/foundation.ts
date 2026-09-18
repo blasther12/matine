@@ -18,7 +18,7 @@ export const foundationPillars = [
     eyebrow: "03 / TOGETHER",
     title: "Uma escolha que inclui todos",
     description:
-      "Preferências, tempo e serviços disponíveis reunidos para decidir o próximo filme em grupo.",
+      "Cada pessoa mantém sua biblioteca privada; o Matinê cruza apenas o necessário para revelar os filmes em comum e levar o grupo até uma decisão.",
   },
 ] as const;
 
