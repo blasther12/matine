@@ -34,8 +34,7 @@ def upgrade() -> None:
     op.create_check_constraint(
         "ck_movie_nights_max_runtime",
         "movie_nights",
-        "max_runtime_minutes IS NULL OR "
-        "(max_runtime_minutes >= 30 AND max_runtime_minutes <= 600)",
+        "max_runtime_minutes IS NULL OR (max_runtime_minutes >= 30 AND max_runtime_minutes <= 600)",
     )
 
     op.create_table(
@@ -49,9 +48,7 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.ForeignKeyConstraint(
-            ["night_id"], ["movie_nights.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["night_id"], ["movie_nights.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["movie_id"], ["movies.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("night_id", "user_id", "movie_id"),
