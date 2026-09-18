@@ -122,8 +122,8 @@ export async function createMovieNight(formData: FormData): Promise<void> {
   const circleId = text(formData, "circle_id");
   const title = text(formData, "title");
   if (!/^[0-9a-f-]{36}$/i.test(circleId) || !title) return;
-  await experienceApi.createNight(await token(), circleId, { title });
-  revalidatePath("/circles");
+  const night = await experienceApi.createNight(await token(), circleId, { title });
+  redirect(`/circles?circle=${circleId}&night=${night.id}`);
 }
 
 export async function addMovieNightCandidate(formData: FormData): Promise<void> {
