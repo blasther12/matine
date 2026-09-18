@@ -33,6 +33,7 @@ from app.modules.experience.schemas import (
     MovieNightVoteCreate,
     RecommendationItem,
     ReviewResponse,
+    ReviewVisibility,
     ReviewUpsert,
     StatsResponse,
     StreamingPreferences,
@@ -435,7 +436,7 @@ class ExperienceService:
             title=details.title if details else None,
             body=record.review.body,
             spoiler=record.review.spoiler,
-            visibility=record.review.visibility,
+            visibility=ReviewVisibility(record.review.visibility),
             created_at=record.review.created_at,
             updated_at=record.review.updated_at,
         )
@@ -450,7 +451,7 @@ class ExperienceService:
             id=value.id,
             name=value.name,
             description=value.description,
-            visibility=value.visibility,
+            visibility=ListVisibility(value.visibility),
             items=[
                 MovieListItemResponse(
                     tmdb_id=item.tmdb_id,
