@@ -135,9 +135,7 @@ async def add_list_item(
 
 
 @router.post("/social/follow", status_code=status.HTTP_204_NO_CONTENT)
-async def follow(
-    payload: FollowCreate, identity: Identity, service: Service
-) -> Response:
+async def follow(payload: FollowCreate, identity: Identity, service: Service) -> Response:
     try:
         await service.follow(identity, payload)
     except (ExperienceProfileNotFoundError, ExperienceNotFoundError) as exc:
@@ -213,9 +211,7 @@ async def add_circle_member(
 
 
 @router.get("/me/circles/{circle_id}/match", response_model=list[MatchItem])
-async def movie_match(
-    circle_id: UUID, identity: Identity, service: Service
-) -> list[MatchItem]:
+async def movie_match(circle_id: UUID, identity: Identity, service: Service) -> list[MatchItem]:
     try:
         return await service.match(identity, circle_id)
     except ExperienceProfileNotFoundError as exc:
@@ -285,9 +281,7 @@ async def vote_movie_night(
     "/me/movie-nights/{night_id}",
     response_model=MovieNightResponse,
 )
-async def movie_night(
-    night_id: UUID, identity: Identity, service: Service
-) -> MovieNightResponse:
+async def movie_night(night_id: UUID, identity: Identity, service: Service) -> MovieNightResponse:
     try:
         return await service.night(identity, night_id)
     except (ExperienceProfileNotFoundError, ExperienceNotFoundError) as exc:
@@ -295,9 +289,7 @@ async def movie_night(
 
 
 @router.get("/me/recommendations", response_model=list[RecommendationItem])
-async def recommendations(
-    identity: Identity, service: Service
-) -> list[RecommendationItem]:
+async def recommendations(identity: Identity, service: Service) -> list[RecommendationItem]:
     try:
         return await service.recommendations(identity)
     except ExperienceProfileNotFoundError as exc:

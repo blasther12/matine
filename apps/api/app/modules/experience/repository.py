@@ -153,19 +153,13 @@ class ExperienceRepository:
                 .join(User, User.id == Review.user_id)
                 .where(
                     (Review.visibility == "PUBLIC")
-                    | (
-                        (Review.visibility == "FOLLOWERS")
-                        & Review.user_id.in_(followed)
-                    )
+                    | ((Review.visibility == "FOLLOWERS") & Review.user_id.in_(followed))
                 )
                 .order_by(Review.updated_at.desc())
                 .limit(100)
             )
         ).all()
-        return [
-            ReviewRecord(review=row[0], tmdb_id=row[1], username=row[2])
-            for row in rows
-        ]
+        return [ReviewRecord(review=row[0], tmdb_id=row[1], username=row[2]) for row in rows]
 
     async def create_list(
         self,
@@ -186,16 +180,18 @@ class ExperienceRepository:
         await self._session.refresh(value)
         return value
 
-    async def lists_for_user(
-        self, user_id: UUID
-    ) -> list[tuple[MovieList, list[ListItemRecord]]]:
+    async def lists_for_user(self, user_id: UUID) -> list[tuple[MovieList, list[ListItemRecord]]]:
         lists = (
-            await self._session.execute(
-                select(MovieList)
-                .where(MovieList.user_id == user_id)
-                .order_by(MovieList.updated_at.desc())
+            (
+                await self._session.execute(
+                    select(MovieList)
+                    .where(MovieList.user_id == user_id)
+                    .order_by(MovieList.updated_at.desc())
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         if not lists:
             return []
         ids = [value.id for value in lists]
@@ -274,9 +270,7 @@ class ExperienceRepository:
             delete(StreamingPreference).where(StreamingPreference.user_id == user_id)
         )
         for provider in providers:
-            self._session.add(
-                StreamingPreference(user_id=user_id, provider_name=provider)
-            )
+            self._session.add(StreamingPreference(user_id=user_id, provider_name=provider))
         await self._session.flush()
         return providers
 
@@ -284,16 +278,12 @@ class ExperienceRepository:
         circle = Circle(owner_user_id=user_id, name=name)
         self._session.add(circle)
         await self._session.flush()
-        self._session.add(
-            CircleMember(circle_id=circle.id, user_id=user_id, role="OWNER")
-        )
+        self._session.add(CircleMember(circle_id=circle.id, user_id=user_id, role="OWNER"))
         await self._session.flush()
         await self._session.refresh(circle)
         return circle
 
-    async def circles_for_user(
-        self, user_id: UUID
-    ) -> list[tuple[Circle, str, int]]:
+    async def circles_for_user(self, user_id: UUID) -> list[tuple[Circle, str, int]]:
         member_count = (
             select(
                 CircleMember.circle_id,
@@ -307,8 +297,7 @@ class ExperienceRepository:
                 select(Circle, CircleMember.role, member_count.c.member_count)
                 .join(
                     CircleMember,
-                    (CircleMember.circle_id == Circle.id)
-                    & (CircleMember.user_id == user_id),
+                    (CircleMember.circle_id == Circle.id) & (CircleMember.user_id == user_id),
                 )
                 .join(member_count, member_count.c.circle_id == Circle.id)
                 .order_by(Circle.created_at.desc())
@@ -326,9 +315,7 @@ class ExperienceRepository:
             )
         ).scalar_one_or_none()
 
-    async def add_circle_member(
-        self, circle_id: UUID, owner_id: UUID, username: str
-    ) -> bool:
+    async def add_circle_member(self, circle_id: UUID, owner_id: UUID, username: str) -> bool:
         if await self.circle_role(circle_id, owner_id) != "OWNER":
             return False
         target = await self.user_by_username(username)
@@ -345,16 +332,12 @@ class ExperienceRepository:
         return list(
             (
                 await self._session.execute(
-                    select(CircleMember.user_id).where(
-                        CircleMember.circle_id == circle_id
-                    )
+                    select(CircleMember.user_id).where(CircleMember.circle_id == circle_id)
                 )
             ).scalars()
         )
 
-    async def match_candidates(
-        self, circle_id: UUID
-    ) -> tuple[int, list[tuple[int, int]]]:
+    async def match_candidates(self, circle_id: UUID) -> tuple[int, list[tuple[int, int]]]:
         members = await self.circle_members(circle_id)
         if not members:
             return 0, []
@@ -376,9 +359,7 @@ class ExperienceRepository:
         ).all()
         return len(members), [(int(row[0]), int(row[1])) for row in rows]
 
-    async def create_night(
-        self, circle_id: UUID, user_id: UUID, title: str
-    ) -> MovieNight | None:
+    async def create_night(self, circle_id: UUID, user_id: UUID, title: str) -> MovieNight | None:
         if await self.circle_role(circle_id, user_id) is None:
             return None
         night = MovieNight(
@@ -391,9 +372,7 @@ class ExperienceRepository:
         await self._session.refresh(night)
         return night
 
-    async def night_for_member(
-        self, night_id: UUID, user_id: UUID
-    ) -> MovieNight | None:
+    async def night_for_member(self, night_id: UUID, user_id: UUID) -> MovieNight | None:
         return (
             await self._session.execute(
                 select(MovieNight)
@@ -406,9 +385,7 @@ class ExperienceRepository:
             )
         ).scalar_one_or_none()
 
-    async def add_candidate(
-        self, night_id: UUID, user_id: UUID, tmdb_id: int
-    ) -> bool:
+    async def add_candidate(self, night_id: UUID, user_id: UUID, tmdb_id: int) -> bool:
         night = await self.night_for_member(night_id, user_id)
         if night is None or night.status != "OPEN":
             return False
@@ -471,8 +448,7 @@ class ExperienceRepository:
                 )
                 .outerjoin(
                     MovieNightVote,
-                    (MovieNightVote.night_id == night_id)
-                    & (MovieNightVote.movie_id == Movie.id),
+                    (MovieNightVote.night_id == night_id) & (MovieNightVote.movie_id == Movie.id),
                 )
                 .where(MovieNightCandidate.night_id == night_id)
                 .group_by(Movie.tmdb_id)
@@ -536,14 +512,10 @@ class ExperienceRepository:
             "diary_total": int(diary_total),
             "review_total": int(review_total),
             "list_total": int(list_total),
-            "average_rating": (
-                round(float(aggregate[2]), 2) if aggregate[2] is not None else None
-            ),
+            "average_rating": (round(float(aggregate[2]), 2) if aggregate[2] is not None else None),
         }
 
-    async def wrapped(
-        self, user_id: UUID, year: int
-    ) -> dict[str, int | None]:
+    async def wrapped(self, user_id: UUID, year: int) -> dict[str, int | None]:
         start = date(year, 1, 1)
         end = date(year + 1, 1, 1)
         diary = (

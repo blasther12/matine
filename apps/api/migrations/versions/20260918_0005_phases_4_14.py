@@ -145,12 +145,8 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["list_id"], ["movie_lists.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["movie_id"], ["movies.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint(
-            "list_id", "movie_id", name="uq_movie_list_items_list_movie"
-        ),
-        sa.UniqueConstraint(
-            "list_id", "position", name="uq_movie_list_items_list_position"
-        ),
+        sa.UniqueConstraint("list_id", "movie_id", name="uq_movie_list_items_list_movie"),
+        sa.UniqueConstraint("list_id", "position", name="uq_movie_list_items_list_position"),
     )
 
     op.create_table(
@@ -215,9 +211,7 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.CheckConstraint(
-            "role IN ('OWNER', 'MEMBER')", name="ck_circle_members_role"
-        ),
+        sa.CheckConstraint("role IN ('OWNER', 'MEMBER')", name="ck_circle_members_role"),
         sa.ForeignKeyConstraint(["circle_id"], ["circles.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("circle_id", "user_id"),
@@ -227,9 +221,7 @@ def upgrade() -> None:
         "movie_nights",
         _uuid(),
         sa.Column("circle_id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column(
-            "created_by_user_id", postgresql.UUID(as_uuid=True), nullable=False
-        ),
+        sa.Column("created_by_user_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("title", sa.String(length=120), nullable=False),
         sa.Column(
             "status",
@@ -243,13 +235,9 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.CheckConstraint(
-            "status IN ('OPEN', 'CLOSED')", name="ck_movie_nights_status"
-        ),
+        sa.CheckConstraint("status IN ('OPEN', 'CLOSED')", name="ck_movie_nights_status"),
         sa.ForeignKeyConstraint(["circle_id"], ["circles.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(
-            ["created_by_user_id"], ["users.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["created_by_user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
 
@@ -257,9 +245,7 @@ def upgrade() -> None:
         "movie_night_candidates",
         sa.Column("night_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("movie_id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column(
-            "added_by_user_id", postgresql.UUID(as_uuid=True), nullable=False
-        ),
+        sa.Column("added_by_user_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -268,9 +254,7 @@ def upgrade() -> None:
         ),
         sa.ForeignKeyConstraint(["night_id"], ["movie_nights.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["movie_id"], ["movies.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(
-            ["added_by_user_id"], ["users.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["added_by_user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("night_id", "movie_id"),
     )
 
@@ -290,9 +274,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["movie_id"], ["movies.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint(
-            "night_id", "user_id", name="uq_movie_night_votes_night_user"
-        ),
+        sa.UniqueConstraint("night_id", "user_id", name="uq_movie_night_votes_night_user"),
     )
 
     private_tables = (

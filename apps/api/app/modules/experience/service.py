@@ -114,9 +114,7 @@ class ExperienceService:
         metadata = await self._metadata([record.tmdb_id for record in records])
         return [self._review_response(record, metadata.get(record.tmdb_id)) for record in records]
 
-    async def save_review(
-        self, identity: CurrentIdentity, payload: ReviewUpsert
-    ) -> ReviewResponse:
+    async def save_review(self, identity: CurrentIdentity, payload: ReviewUpsert) -> ReviewResponse:
         user = await self._user(identity)
         record = await self._repo.upsert_review(
             user.id,
@@ -138,9 +136,7 @@ class ExperienceService:
             FeedItem(
                 username=record.username,
                 tmdb_id=record.tmdb_id,
-                title=metadata.get(record.tmdb_id).title
-                if record.tmdb_id in metadata
-                else None,
+                title=metadata.get(record.tmdb_id).title if record.tmdb_id in metadata else None,
                 body=record.review.body,
                 spoiler=record.review.spoiler,
                 created_at=record.review.created_at,
@@ -159,10 +155,7 @@ class ExperienceService:
         records = await self._repo.lists_for_user(user.id)
         ids = [item.tmdb_id for _, items in records for item in items]
         metadata = await self._metadata(ids)
-        return [
-            self._list_response(value, items, metadata)
-            for value, items in records
-        ]
+        return [self._list_response(value, items, metadata) for value, items in records]
 
     async def create_list(
         self, identity: CurrentIdentity, payload: MovieListCreate
@@ -252,9 +245,7 @@ class ExperienceService:
             raise ExperienceForbiddenError
         await self._session.commit()
 
-    async def match(
-        self, identity: CurrentIdentity, circle_id: UUID
-    ) -> list[MatchItem]:
+    async def match(self, identity: CurrentIdentity, circle_id: UUID) -> list[MatchItem]:
         user = await self._user(identity)
         if await self._repo.circle_role(circle_id, user.id) is None:
             raise ExperienceForbiddenError
@@ -264,9 +255,7 @@ class ExperienceService:
             MatchItem(
                 tmdb_id=tmdb_id,
                 title=metadata.get(tmdb_id).title if tmdb_id in metadata else None,
-                poster_path=(
-                    metadata.get(tmdb_id).poster_path if tmdb_id in metadata else None
-                ),
+                poster_path=(metadata.get(tmdb_id).poster_path if tmdb_id in metadata else None),
                 interested_members=interested,
                 member_count=member_count,
                 score=round(interested / member_count, 3) if member_count else 0,
@@ -317,9 +306,7 @@ class ExperienceService:
             raise ExperienceForbiddenError
         await self._session.commit()
 
-    async def night(
-        self, identity: CurrentIdentity, night_id: UUID
-    ) -> MovieNightResponse:
+    async def night(self, identity: CurrentIdentity, night_id: UUID) -> MovieNightResponse:
         user = await self._user(identity)
         night, results = await self._repo.night_results(night_id, user.id)
         if night is None:
@@ -333,9 +320,7 @@ class ExperienceService:
             results=[
                 MovieNightResultItem(
                     tmdb_id=tmdb_id,
-                    title=metadata.get(tmdb_id).title
-                    if tmdb_id in metadata
-                    else None,
+                    title=metadata.get(tmdb_id).title if tmdb_id in metadata else None,
                     votes=votes,
                 )
                 for tmdb_id, votes in results
@@ -343,9 +328,7 @@ class ExperienceService:
             created_at=night.created_at,
         )
 
-    async def recommendations(
-        self, identity: CurrentIdentity
-    ) -> list[RecommendationItem]:
+    async def recommendations(self, identity: CurrentIdentity) -> list[RecommendationItem]:
         user = await self._user(identity)
         rows = await self._repo.library_rows(user.id)
         metadata = await self._metadata([tmdb_id for _, tmdb_id in rows])
@@ -370,9 +353,7 @@ class ExperienceService:
             score = details.vote_average + min(affinity / 10.0, 5.0)
             reasons = [f"TMDB {details.vote_average:.1f}/10"]
             matched = [
-                genre.name
-                for genre in details.genres
-                if genre_weights.get(genre.tmdb_id, 0.0) > 0
+                genre.name for genre in details.genres if genre_weights.get(genre.tmdb_id, 0.0) > 0
             ][:2]
             if matched:
                 reasons.append("combina com " + " e ".join(matched))
@@ -457,9 +438,7 @@ class ExperienceService:
                     tmdb_id=item.tmdb_id,
                     position=item.item.position,
                     note=item.item.note,
-                    title=metadata[item.tmdb_id].title
-                    if item.tmdb_id in metadata
-                    else None,
+                    title=metadata[item.tmdb_id].title if item.tmdb_id in metadata else None,
                     poster_path=metadata[item.tmdb_id].poster_path
                     if item.tmdb_id in metadata
                     else None,
