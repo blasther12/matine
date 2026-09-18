@@ -148,7 +148,12 @@ class Settings(BaseSettings):
     )
     supabase_anon_key: SecretStr = Field(
         default=SecretStr(""),
-        validation_alias=AliasChoices("SUPABASE_PUBLISHABLE_KEY", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+        validation_alias=AliasChoices(
+            "SUPABASE_PUBLISHABLE_KEY",
+            "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+            "SUPABASE_ANON_KEY",
+            "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        ),
         repr=False,
     )
     rate_limit_requests: int = Field(
