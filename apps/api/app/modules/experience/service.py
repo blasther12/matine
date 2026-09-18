@@ -16,6 +16,7 @@ from app.modules.experience.schemas import (
     CircleCreate,
     CircleMemberCreate,
     CircleResponse,
+    CircleStreamingSummary,
     DiaryCreate,
     DiaryEntryResponse,
     FeedItem,
@@ -30,16 +31,18 @@ from app.modules.experience.schemas import (
     MovieNightCreate,
     MovieNightResponse,
     MovieNightResultItem,
+    MovieNightVetoCreate,
     MovieNightVoteCreate,
     RecommendationItem,
     ReviewResponse,
     ReviewUpsert,
     ReviewVisibility,
     StatsResponse,
+    StreamingCoverage,
     StreamingPreferences,
     WrappedResponse,
 )
-from app.modules.movies.schemas import MovieDetailsResponse
+from app.modules.movies.schemas import MovieDetailsResponse, MovieProvidersResponse
 from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
 
@@ -72,6 +75,30 @@ class ExperienceService:
     @staticmethod
     def _cache_key(tmdb_id: int) -> str:
         return f"movie:details:v1:pt-BR:{tmdb_id}"
+
+    @staticmethod
+    def _providers_cache_key(tmdb_id: int) -> str:
+        return f"movie:providers:v1:BR:{tmdb_id}"
+
+    @staticmethod
+    def _night_genres(value: str) -> list[str]:
+        return [item for item in value.split(",") if item]
+
+    async def _provider_metadata(
+        self, tmdb_ids: list[int]
+    ) -> dict[int, MovieProvidersResponse]:
+        keys = [self._providers_cache_key(value) for value in tmdb_ids]
+        cached = await self._cache.get_many("tmdb", keys)
+        result: dict[int, MovieProvidersResponse] = {}
+        for tmdb_id in tmdb_ids:
+            payload = cached.get(self._providers_cache_key(tmdb_id))
+            if payload is None:
+                continue
+            try:
+                result[tmdb_id] = MovieProvidersResponse.model_validate(payload)
+            except ValidationError:
+                continue
+        return result
 
     async def _metadata(self, tmdb_ids: list[int]) -> dict[int, MovieDetailsResponse]:
         keys = [self._cache_key(value) for value in tmdb_ids]
@@ -245,24 +272,158 @@ class ExperienceService:
             raise ExperienceForbiddenError
         await self._session.commit()
 
-    async def match(self, identity: CurrentIdentity, circle_id: UUID) -> list[MatchItem]:
+    async def circle_streaming(
+        self, identity: CurrentIdentity, circle_id: UUID
+    ) -> CircleStreamingSummary:
         user = await self._user(identity)
         if await self._repo.circle_role(circle_id, user.id) is None:
             raise ExperienceForbiddenError
+        member_count, configured_members, providers = (
+            await self._repo.circle_streaming_summary(circle_id)
+        )
+        return CircleStreamingSummary(
+            member_count=member_count,
+            configured_members=configured_members,
+            providers=[
+                StreamingCoverage(provider=name, members=count)
+                for name, count in providers.items()
+            ],
+        )
+
+    async def match(
+        self,
+        identity: CurrentIdentity,
+        circle_id: UUID,
+        night_id: UUID | None = None,
+    ) -> list[MatchItem]:
+        user = await self._user(identity)
+        if await self._repo.circle_role(circle_id, user.id) is None:
+            raise ExperienceForbiddenError
+
+        night = None
+        if night_id is not None:
+            night = await self._repo.night_for_member(night_id, user.id)
+            if night is None or night.circle_id != circle_id:
+                raise ExperienceForbiddenError
+
         member_count, candidates = await self._repo.match_candidates(circle_id)
-        metadata = await self._metadata([tmdb_id for tmdb_id, _ in candidates])
-        return [
-            MatchItem(
-                tmdb_id=tmdb_id,
-                title=metadata[tmdb_id].title if tmdb_id in metadata else None,
-                poster_path=(metadata[tmdb_id].poster_path if tmdb_id in metadata else None),
-                interested_members=interested,
-                member_count=member_count,
-                score=round(interested / member_count, 3) if member_count else 0,
-                reason=f"{interested} de {member_count} membros querem assistir",
+        ids = [tmdb_id for tmdb_id, _ in candidates]
+        metadata = await self._metadata(ids)
+        provider_metadata = await self._provider_metadata(ids)
+        _, configured_members, provider_counts = (
+            await self._repo.circle_streaming_summary(circle_id)
+        )
+        normalized_provider_counts = {
+            name.casefold(): (name, count) for name, count in provider_counts.items()
+        }
+        preferred_genres = (
+            self._night_genres(night.preferred_genres) if night is not None else []
+        )
+
+        items: list[MatchItem] = []
+        for tmdb_id, interested in candidates:
+            details = metadata.get(tmdb_id)
+            providers = provider_metadata.get(tmdb_id)
+
+            fits_context = True
+            context_reasons: list[str] = []
+            if night is not None and night.max_runtime_minutes is not None:
+                if details is not None and details.runtime_minutes is not None:
+                    if details.runtime_minutes <= night.max_runtime_minutes:
+                        context_reasons.append(
+                            f"{details.runtime_minutes} min cabe no limite do grupo"
+                        )
+                    else:
+                        fits_context = False
+                        context_reasons.append(
+                            f"{details.runtime_minutes} min passa do limite de "
+                            f"{night.max_runtime_minutes} min"
+                        )
+            if preferred_genres and details is not None:
+                movie_genres = {genre.name.casefold() for genre in details.genres}
+                matched_genres = [
+                    genre
+                    for genre in preferred_genres
+                    if genre.casefold() in movie_genres
+                ]
+                if matched_genres:
+                    context_reasons.append(
+                        "combina com " + ", ".join(matched_genres[:2])
+                    )
+                else:
+                    fits_context = False
+                    context_reasons.append("fora dos gêneros escolhidos para hoje")
+
+            streaming_ready_members = 0
+            streaming_provider = None
+            streaming_checked = providers is not None
+            if providers is not None:
+                available = {
+                    provider.name.casefold(): provider.name
+                    for provider in (
+                        *providers.streaming,
+                        *providers.free,
+                        *providers.ads,
+                    )
+                }
+                best: tuple[str, int] | None = None
+                for key in available:
+                    configured = normalized_provider_counts.get(key)
+                    if configured is None:
+                        continue
+                    if best is None or configured[1] > best[1]:
+                        best = configured
+                if best is not None:
+                    streaming_provider, streaming_ready_members = best
+
+            interest_ratio = interested / member_count if member_count else 0.0
+            score = interest_ratio
+            if streaming_checked and configured_members:
+                access_ratio = streaming_ready_members / configured_members
+                score = (interest_ratio * 0.8) + (access_ratio * 0.2)
+            if night is not None:
+                score = min(1.0, score + 0.05) if fits_context else score * 0.5
+
+            reasons = [f"{interested} de {member_count} membros querem assistir"]
+            if streaming_provider is not None:
+                reasons.append(
+                    f"pelo menos {streaming_ready_members} membros têm "
+                    f"{streaming_provider}"
+                )
+            if context_reasons:
+                reasons.extend(context_reasons)
+
+            items.append(
+                MatchItem(
+                    tmdb_id=tmdb_id,
+                    title=details.title if details is not None else None,
+                    poster_path=details.poster_path if details is not None else None,
+                    runtime_minutes=(
+                        details.runtime_minutes if details is not None else None
+                    ),
+                    genres=(
+                        [genre.name for genre in details.genres]
+                        if details is not None
+                        else []
+                    ),
+                    interested_members=interested,
+                    member_count=member_count,
+                    streaming_ready_members=streaming_ready_members,
+                    streaming_configured_members=configured_members,
+                    streaming_provider=streaming_provider,
+                    streaming_checked=streaming_checked,
+                    fits_context=fits_context,
+                    context_reasons=context_reasons,
+                    score=round(score, 3),
+                    reason=" · ".join(reasons),
+                )
             )
-            for tmdb_id, interested in candidates
-        ]
+
+        return sorted(
+            items,
+            key=lambda item: (item.fits_context, item.score),
+            reverse=True,
+        )
 
     async def create_night(
         self,
@@ -271,7 +432,13 @@ class ExperienceService:
         payload: MovieNightCreate,
     ) -> MovieNightResponse:
         user = await self._user(identity)
-        night = await self._repo.create_night(circle_id, user.id, payload.title)
+        night = await self._repo.create_night(
+            circle_id,
+            user.id,
+            payload.title,
+            max_runtime_minutes=payload.max_runtime_minutes,
+            preferred_genres=payload.preferred_genres,
+        )
         if night is None:
             raise ExperienceForbiddenError
         await self._session.commit()
@@ -280,6 +447,8 @@ class ExperienceService:
             circle_id=night.circle_id,
             title=night.title,
             status=night.status,
+            max_runtime_minutes=night.max_runtime_minutes,
+            preferred_genres=self._night_genres(night.preferred_genres),
             results=[],
             created_at=night.created_at,
         )
@@ -306,25 +475,51 @@ class ExperienceService:
             raise ExperienceForbiddenError
         await self._session.commit()
 
+    async def set_veto(
+        self,
+        identity: CurrentIdentity,
+        night_id: UUID,
+        payload: MovieNightVetoCreate,
+        *,
+        enabled: bool,
+    ) -> None:
+        user = await self._user(identity)
+        if not await self._repo.set_veto(
+            night_id,
+            user.id,
+            payload.tmdb_id,
+            enabled=enabled,
+        ):
+            raise ExperienceForbiddenError
+        await self._session.commit()
+
     async def night(self, identity: CurrentIdentity, night_id: UUID) -> MovieNightResponse:
         user = await self._user(identity)
         night, results = await self._repo.night_results(night_id, user.id)
         if night is None:
             raise ExperienceNotFoundError
-        metadata = await self._metadata([tmdb_id for tmdb_id, _ in results])
+        metadata = await self._metadata([tmdb_id for tmdb_id, _, _, _ in results])
+        result_items = [
+            MovieNightResultItem(
+                tmdb_id=tmdb_id,
+                title=metadata[tmdb_id].title if tmdb_id in metadata else None,
+                votes=votes,
+                vetoed=vetoed,
+                my_veto=my_veto,
+            )
+            for tmdb_id, votes, vetoed, my_veto in results
+        ]
         return MovieNightResponse(
             id=night.id,
             circle_id=night.circle_id,
             title=night.title,
             status=night.status,
-            results=[
-                MovieNightResultItem(
-                    tmdb_id=tmdb_id,
-                    title=metadata[tmdb_id].title if tmdb_id in metadata else None,
-                    votes=votes,
-                )
-                for tmdb_id, votes in results
-            ],
+            max_runtime_minutes=night.max_runtime_minutes,
+            preferred_genres=self._night_genres(night.preferred_genres),
+            results=sorted(
+                result_items,
+                key=lambda item: (item.vetoed, -item.votes),
+            ),
             created_at=night.created_at,
         )
 
