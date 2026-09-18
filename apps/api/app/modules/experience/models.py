@@ -76,9 +76,7 @@ class Review(Base):
 class MovieList(Base):
     __tablename__ = "movie_lists"
     __table_args__ = (
-        CheckConstraint(
-            "visibility IN ('PRIVATE', 'PUBLIC')", name="ck_movie_lists_visibility"
-        ),
+        CheckConstraint("visibility IN ('PRIVATE', 'PUBLIC')", name="ck_movie_lists_visibility"),
         Index("ix_movie_lists_user_updated_at", "user_id", text("updated_at DESC")),
     )
 
@@ -123,9 +121,7 @@ class MovieListItem(Base):
 
 class Follow(Base):
     __tablename__ = "follows"
-    __table_args__ = (
-        CheckConstraint("follower_id <> followee_id", name="ck_follows_not_self"),
-    )
+    __table_args__ = (CheckConstraint("follower_id <> followee_id", name="ck_follows_not_self"),)
 
     follower_id: Mapped[UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
@@ -188,9 +184,7 @@ class CircleMember(Base):
 class MovieNight(Base):
     __tablename__ = "movie_nights"
     __table_args__ = (
-        CheckConstraint(
-            "status IN ('OPEN', 'CLOSED')", name="ck_movie_nights_status"
-        ),
+        CheckConstraint("status IN ('OPEN', 'CLOSED')", name="ck_movie_nights_status"),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
@@ -201,9 +195,7 @@ class MovieNight(Base):
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     title: Mapped[str] = mapped_column(String(120), nullable=False)
-    status: Mapped[str] = mapped_column(
-        String(16), server_default=text("'OPEN'"), nullable=False
-    )
+    status: Mapped[str] = mapped_column(String(16), server_default=text("'OPEN'"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
