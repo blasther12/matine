@@ -195,6 +195,10 @@ class MovieNight(Base):
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     title: Mapped[str] = mapped_column(String(120), nullable=False)
+    max_runtime_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    preferred_genres: Mapped[str] = mapped_column(
+        String(300), server_default=text("''"), nullable=False
+    )
     status: Mapped[str] = mapped_column(String(16), server_default=text("'OPEN'"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -233,6 +237,23 @@ class MovieNightVote(Base):
     )
     movie_id: Mapped[UUID] = mapped_column(
         ForeignKey("movies.id", ondelete="CASCADE"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class MovieNightVeto(Base):
+    __tablename__ = "movie_night_vetoes"
+
+    night_id: Mapped[UUID] = mapped_column(
+        ForeignKey("movie_nights.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    movie_id: Mapped[UUID] = mapped_column(
+        ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
