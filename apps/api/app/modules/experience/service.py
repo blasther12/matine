@@ -136,7 +136,7 @@ class ExperienceService:
             FeedItem(
                 username=record.username,
                 tmdb_id=record.tmdb_id,
-                title=metadata.get(record.tmdb_id).title if record.tmdb_id in metadata else None,
+                title=metadata[record.tmdb_id].title if record.tmdb_id in metadata else None,
                 body=record.review.body,
                 spoiler=record.review.spoiler,
                 created_at=record.review.created_at,
@@ -254,8 +254,8 @@ class ExperienceService:
         return [
             MatchItem(
                 tmdb_id=tmdb_id,
-                title=metadata.get(tmdb_id).title if tmdb_id in metadata else None,
-                poster_path=(metadata.get(tmdb_id).poster_path if tmdb_id in metadata else None),
+                title=metadata[tmdb_id].title if tmdb_id in metadata else None,
+                poster_path=(metadata[tmdb_id].poster_path if tmdb_id in metadata else None),
                 interested_members=interested,
                 member_count=member_count,
                 score=round(interested / member_count, 3) if member_count else 0,
