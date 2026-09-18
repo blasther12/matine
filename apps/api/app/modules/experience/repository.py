@@ -275,9 +275,7 @@ class ExperienceRepository:
         await self._session.flush()
         return providers
 
-    async def circle_streaming_summary(
-        self, circle_id: UUID
-    ) -> tuple[int, int, dict[str, int]]:
+    async def circle_streaming_summary(self, circle_id: UUID) -> tuple[int, int, dict[str, int]]:
         members = await self.circle_members(circle_id)
         if not members:
             return 0, 0, {}
@@ -538,8 +536,7 @@ class ExperienceRepository:
                 )
                 .outerjoin(
                     MovieNightVote,
-                    (MovieNightVote.night_id == night_id)
-                    & (MovieNightVote.movie_id == Movie.id),
+                    (MovieNightVote.night_id == night_id) & (MovieNightVote.movie_id == Movie.id),
                 )
                 .where(MovieNightCandidate.night_id == night_id)
                 .group_by(Movie.tmdb_id)
