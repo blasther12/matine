@@ -148,7 +148,7 @@ class Settings(BaseSettings):
     )
     supabase_anon_key: SecretStr = Field(
         default=SecretStr(""),
-        validation_alias=AliasChoices("SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+        validation_alias=AliasChoices("SUPABASE_PUBLISHABLE_KEY", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"),
         repr=False,
     )
     rate_limit_requests: int = Field(
@@ -268,7 +268,7 @@ class Settings(BaseSettings):
             if not self.tmdb_token:
                 raise ValueError("TMDB_API_KEY is required in production")
             if not self.supabase_origin or not self.supabase_public_key:
-                raise ValueError("Supabase URL and anon key are required in production")
+                raise ValueError("Supabase URL and public key are required in production")
             if any(_is_local_host(host) for host in hosts):
                 raise ValueError("production TRUSTED_HOSTS must not contain local hosts")
             if any(_is_local_host(urlsplit(origin).hostname) for origin in origins):
