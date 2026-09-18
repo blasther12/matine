@@ -320,7 +320,7 @@ class ExperienceService:
             results=[
                 MovieNightResultItem(
                     tmdb_id=tmdb_id,
-                    title=metadata.get(tmdb_id).title if tmdb_id in metadata else None,
+                    title=metadata[tmdb_id].title if tmdb_id in metadata else None,
                     votes=votes,
                 )
                 for tmdb_id, votes in results
