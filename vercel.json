@@ -36,5 +36,9 @@
         "service": "web"
       }
     }
-  ]
+  ],
+  "env": {
+    "SUPABASE_URL": "https://gpizkywylfhdttecbzjn.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_wAez1j-30SDUHXLuOjS4Mw_at1FwFpP"
+  }
 }
