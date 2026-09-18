@@ -25,9 +25,7 @@ from app.modules.experience.schemas import (
         "/me/wrapped?year=2026",
     ],
 )
-async def test_phase_4_14_routes_require_authentication(
-    client: AsyncClient, path: str
-) -> None:
+async def test_phase_4_14_routes_require_authentication(client: AsyncClient, path: str) -> None:
     response = await client.get(path)
 
     assert response.status_code == 401
@@ -78,8 +76,6 @@ def test_private_phase_payloads_reject_client_ownership(
 
 
 def test_streaming_preferences_are_minimized_and_deduplicated() -> None:
-    value = StreamingPreferences(
-        providers=[" Netflix ", "netflix", "", "Prime Video"]
-    )
+    value = StreamingPreferences(providers=[" Netflix ", "netflix", "", "Prime Video"])
 
     assert value.providers == ["Netflix", "Prime Video"]
