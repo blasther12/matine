@@ -106,8 +106,8 @@ export async function saveStreamingPreferences(formData: FormData): Promise<void
 export async function createCircle(formData: FormData): Promise<void> {
   const name = text(formData, "name");
   if (!name) return;
-  await experienceApi.createCircle(await token(), { name });
-  revalidatePath("/circles");
+  const circle = await experienceApi.createCircle(await token(), { name });
+  redirect(`/circles?circle=${circle.id}`);
 }
 
 export async function addCircleMember(formData: FormData): Promise<void> {
