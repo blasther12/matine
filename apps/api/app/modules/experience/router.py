@@ -11,6 +11,7 @@ from app.modules.experience.schemas import (
     CircleCreate,
     CircleMemberCreate,
     CircleResponse,
+    CircleStreamingSummary,
     DiaryCreate,
     DiaryEntryResponse,
     FeedItem,
@@ -22,6 +23,7 @@ from app.modules.experience.schemas import (
     MovieNightCandidateCreate,
     MovieNightCreate,
     MovieNightResponse,
+    MovieNightVetoCreate,
     MovieNightVoteCreate,
     RecommendationItem,
     ReviewResponse,
@@ -210,10 +212,32 @@ async def add_circle_member(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.get("/me/circles/{circle_id}/match", response_model=list[MatchItem])
-async def movie_match(circle_id: UUID, identity: Identity, service: Service) -> list[MatchItem]:
+@router.get(
+    "/me/circles/{circle_id}/streaming",
+    response_model=CircleStreamingSummary,
+)
+async def circle_streaming(
+    circle_id: UUID,
+    identity: Identity,
+    service: Service,
+) -> CircleStreamingSummary:
     try:
-        return await service.match(identity, circle_id)
+        return await service.circle_streaming(identity, circle_id)
+    except ExperienceProfileNotFoundError as exc:
+        raise _not_found(exc) from exc
+    except ExperienceForbiddenError as exc:
+        raise _forbidden(exc) from exc
+
+
+@router.get("/me/circles/{circle_id}/match", response_model=list[MatchItem])
+async def movie_match(
+    circle_id: UUID,
+    identity: Identity,
+    service: Service,
+    night_id: UUID | None = Query(default=None),
+) -> list[MatchItem]:
+    try:
+        return await service.match(identity, circle_id, night_id)
     except ExperienceProfileNotFoundError as exc:
         raise _not_found(exc) from exc
     except ExperienceForbiddenError as exc:
@@ -270,6 +294,44 @@ async def vote_movie_night(
 ) -> Response:
     try:
         await service.vote(identity, night_id, payload)
+    except ExperienceProfileNotFoundError as exc:
+        raise _not_found(exc) from exc
+    except ExperienceForbiddenError as exc:
+        raise _forbidden(exc) from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    "/me/movie-nights/{night_id}/veto",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def veto_movie_night(
+    night_id: UUID,
+    payload: MovieNightVetoCreate,
+    identity: Identity,
+    service: Service,
+) -> Response:
+    try:
+        await service.set_veto(identity, night_id, payload, enabled=True)
+    except ExperienceProfileNotFoundError as exc:
+        raise _not_found(exc) from exc
+    except ExperienceForbiddenError as exc:
+        raise _forbidden(exc) from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete(
+    "/me/movie-nights/{night_id}/veto",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def remove_movie_night_veto(
+    night_id: UUID,
+    payload: MovieNightVetoCreate,
+    identity: Identity,
+    service: Service,
+) -> Response:
+    try:
+        await service.set_veto(identity, night_id, payload, enabled=False)
     except ExperienceProfileNotFoundError as exc:
         raise _not_found(exc) from exc
     except ExperienceForbiddenError as exc:
