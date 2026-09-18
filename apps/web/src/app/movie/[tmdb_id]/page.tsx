@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { removeLibraryMovie, saveLibraryMovie } from "@/app/library/actions";
 import { Badge } from "@/components/ui/badge";
 import { buttonClassName } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import {
   ApiError,
   formatRuntime,
@@ -223,7 +224,7 @@ export default async function MoviePage({
                           {Array.from({ length: 10 }, (_, index) => (index + 1) / 2).map((rating) => <option key={rating} value={rating}>{rating.toFixed(1)}</option>)}
                         </select>
                       </label>
-                      <button className={buttonClassName("primary", "rounded-xl")} type="submit">Salvar</button>
+                      <SubmitButton className="rounded-xl" pendingLabel="Salvando...">Salvar</SubmitButton>
                       <label className="flex min-h-8 items-center gap-2 text-sm text-zinc-300 sm:col-span-3">
                         <input defaultChecked={libraryEntry?.favorite ?? false} name="favorite" type="checkbox" /> Favorito
                       </label>
@@ -231,7 +232,7 @@ export default async function MoviePage({
                     {libraryEntry ? (
                       <form action={removeLibraryMovie} className="mt-4 border-t border-white/[0.07] pt-4">
                         <input name="tmdb_id" type="hidden" value={tmdbId} />
-                        <button className="text-xs text-zinc-500 hover:text-red-200" type="submit">Remover da biblioteca</button>
+                        <SubmitButton className="min-h-8 rounded-lg px-3 py-1 text-xs" pendingLabel="Removendo..." variant="secondary">Remover da biblioteca</SubmitButton>
                       </form>
                     ) : null}
                   </>
