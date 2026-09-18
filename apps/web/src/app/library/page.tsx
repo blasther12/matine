@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { removeLibraryMovie } from "@/app/library/actions";
 import { Badge } from "@/components/ui/badge";
 import { buttonClassName } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { getLibrary, getProfile, type LibraryStatus } from "@/lib/backend.server";
 import { tmdbImageUrl } from "@/lib/api";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -91,7 +92,7 @@ export default async function LibraryPage({ searchParams }: Props) {
                     </div>
                     <form action={removeLibraryMovie} className="mt-5 border-t border-white/[0.07] pt-4">
                       <input name="tmdb_id" type="hidden" value={entry.tmdb_id} />
-                      <button className="text-xs text-zinc-500 hover:text-red-200" type="submit">Remover da biblioteca</button>
+                      <SubmitButton className="min-h-8 rounded-lg px-3 py-1 text-xs" pendingLabel="Removendo..." variant="secondary">Remover da biblioteca</SubmitButton>
                     </form>
                   </div>
                 </article>
