@@ -53,4 +53,4 @@ export function Panel({ children }: { children: ReactNode }) {
 export const fieldClass =
   "mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none focus:border-amber-300";
 export const buttonClass =
-  "rounded-xl bg-amber-300 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-amber-200";
+  "touch-manipulation cursor-pointer select-none rounded-xl bg-amber-300 px-4 py-3 text-sm font-semibold text-zinc-950 transition-[transform,background-color,box-shadow,opacity] duration-150 hover:bg-amber-200 active:translate-y-px active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45";
