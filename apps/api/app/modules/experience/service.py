@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentIdentity
 from app.integrations.tmdb.repository import ExternalCacheRepository
+from app.modules.experience.models import MovieList
 from app.modules.experience.repository import (
     DiaryRecord,
     ExperienceRepository,
@@ -442,7 +443,7 @@ class ExperienceService:
 
     @staticmethod
     def _list_response(
-        value: object,
+        value: MovieList,
         items: list[ListItemRecord],
         metadata: dict[int, MovieDetailsResponse],
     ) -> MovieListResponse:
