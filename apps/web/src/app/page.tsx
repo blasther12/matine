@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { connection } from "next/server";
 
+import { signOut } from "@/app/auth/actions";
 import { Badge } from "@/components/ui/badge";
 import { buttonClassName } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { foundationPillars, privacyPrinciples } from "@/lib/foundation";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 function ArrowIcon() {
   return (
@@ -114,6 +116,10 @@ export default async function HomePage() {
   // A per-request CSP nonce requires dynamic rendering in Next.js.
   await connection();
 
+  const supabase = await createSupabaseServerClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const isAuthenticated = Boolean(userData.user);
+
   return (
     <div className="film-grain min-h-screen overflow-hidden bg-background text-foreground">
       <a
@@ -151,17 +157,41 @@ export default async function HomePage() {
             >
               Privacidade
             </a>
-            <Link
-              className="text-sm text-zinc-400 transition hover:text-zinc-100 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-300"
-              href="/login"
-            >
-              Entrar
-            </Link>
-            <Badge tone="accent">Fase 2</Badge>
+            {isAuthenticated ? (
+              <>
+                <Link
+                  className="text-sm text-zinc-400 transition hover:text-zinc-100 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-300"
+                  href="/library"
+                >
+                  Biblioteca
+                </Link>
+                <Link
+                  className="text-sm text-zinc-400 transition hover:text-zinc-100 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-300"
+                  href="/account"
+                >
+                  Minha conta
+                </Link>
+                <form action={signOut}>
+                  <button
+                    className="text-sm text-zinc-500 transition hover:text-zinc-100"
+                    type="submit"
+                  >
+                    Sair
+                  </button>
+                </form>
+              </>
+            ) : (
+              <Link
+                className="text-sm text-zinc-400 transition hover:text-zinc-100 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-300"
+                href="/login"
+              >
+                Entrar
+              </Link>
+            )}
           </nav>
 
-          <Link className="sm:hidden" href="/login">
-            <Badge tone="accent">Entrar</Badge>
+          <Link className="sm:hidden" href={isAuthenticated ? "/account" : "/login"}>
+            <Badge tone="accent">{isAuthenticated ? "Minha conta" : "Entrar"}</Badge>
           </Link>
         </div>
       </header>
@@ -180,13 +210,13 @@ export default async function HomePage() {
               </p>
 
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <a
+                <Link
                   className={buttonClassName("primary")}
-                  href="#foundation"
+                  href={isAuthenticated ? "/library" : "/login"}
                 >
-                  Conheça a fundação
+                  {isAuthenticated ? "Abrir minha biblioteca" : "Começar minha Matinê"}
                   <ArrowIcon />
-                </a>
+                </Link>
                 <Link className={buttonClassName("secondary")} href="/search">
                   Explorar catálogo
                   <ArrowIcon />
@@ -224,7 +254,7 @@ export default async function HomePage() {
                 Muito além de um catálogo.
               </h2>
               <p className="mt-5 max-w-md text-sm leading-7 text-zinc-500">
-                A fundação segura está ativa e a busca pública do catálogo já está disponível. Biblioteca pessoal e recursos sociais continuam privados e entram somente após a base de autorização.
+                O Matinê já reúne catálogo, biblioteca, diário, reviews, listas, círculos, recomendações, estatísticas e retrospectiva, mantendo seus dados privados por padrão.
               </p>
             </div>
 
@@ -285,8 +315,8 @@ export default async function HomePage() {
       </main>
 
       <footer className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-10 text-xs text-zinc-600 sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-10">
-        <p>Matinê · Fundação técnica + catálogo</p>
-        <p>Fase 1 — nenhuma conta ou dado pessoal é coletado.</p>
+        <p>Matinê · Seu cinema pessoal</p>
+        <p>Privado por padrão · compartilhamento somente quando você escolher.</p>
       </footer>
     </div>
   );
