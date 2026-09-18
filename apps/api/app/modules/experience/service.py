@@ -329,9 +329,9 @@ class ExperienceService:
                 and details.runtime_minutes is not None
             ):
                 if details.runtime_minutes <= night.max_runtime_minutes:
-                        context_reasons.append(
-                            f"{details.runtime_minutes} min cabe no limite do grupo"
-                        )
+                    context_reasons.append(
+                        f"{details.runtime_minutes} min cabe no limite do grupo"
+                    )
                 else:
                     fits_context = False
                     context_reasons.append(
