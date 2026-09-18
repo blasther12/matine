@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import {
   resendConfirmation,
   signIn,
   signUp,
 } from "@/app/auth/actions";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Entrar" };
 
@@ -33,6 +35,12 @@ function errorMessage(error?: string): string | null {
   if (error === "user_already_exists") {
     return "Já existe uma conta com esse e-mail. Tente entrar ou reenviar a confirmação.";
   }
+  if (error === "confirmation_expired") {
+    return "Esse link de confirmação expirou ou já foi usado. Solicite um novo e-mail de confirmação.";
+  }
+  if (error === "confirmation") {
+    return "Não foi possível concluir a confirmação. Solicite um novo link e tente novamente.";
+  }
   if (error === "credentials") {
     return "E-mail ou senha inválidos.";
   }
@@ -46,6 +54,10 @@ function errorMessage(error?: string): string | null {
 }
 
 export default async function LoginPage({ searchParams }: Props) {
+  const supabase = await createSupabaseServerClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (userData.user) redirect("/account");
+
   const state = await searchParams;
   const message = errorMessage(state.error);
 
