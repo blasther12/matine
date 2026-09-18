@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 
 import { saveReview } from "@/app/features/actions";
-import { ExperienceShell, Panel, buttonClass, fieldClass } from "@/components/experience-shell";
+import { ExperienceShell, Panel, fieldClass } from "@/components/experience-shell";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { requireAccessToken } from "@/lib/auth.server";
 import { experienceApi } from "@/lib/experience.server";
 
@@ -20,7 +21,7 @@ export default async function ReviewsPage() {
             <label className="block text-sm text-zinc-300">Review<textarea className={fieldClass} maxLength={5000} minLength={1} name="body" rows={6} required /></label>
             <label className="block text-sm text-zinc-300">Visibilidade<select className={fieldClass} defaultValue="PRIVATE" name="visibility"><option value="PRIVATE">Privada</option><option value="FOLLOWERS">Seguidores</option><option value="PUBLIC">Pública</option></select></label>
             <label className="flex gap-2 text-sm text-zinc-300"><input name="spoiler" type="checkbox" /> Contém spoiler</label>
-            <button className={buttonClass} type="submit">Salvar review</button>
+            <SubmitButton className="rounded-xl" pendingLabel="Salvando...">Salvar review</SubmitButton>
           </form>
         </Panel>
         <div className="space-y-4">
