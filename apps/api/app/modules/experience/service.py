@@ -327,18 +327,22 @@ class ExperienceService:
 
             fits_context = True
             context_reasons: list[str] = []
-            if night is not None and night.max_runtime_minutes is not None:
-                if details is not None and details.runtime_minutes is not None:
-                    if details.runtime_minutes <= night.max_runtime_minutes:
+            if (
+                night is not None
+                and night.max_runtime_minutes is not None
+                and details is not None
+                and details.runtime_minutes is not None
+            ):
+                if details.runtime_minutes <= night.max_runtime_minutes:
                         context_reasons.append(
                             f"{details.runtime_minutes} min cabe no limite do grupo"
                         )
-                    else:
-                        fits_context = False
-                        context_reasons.append(
-                            f"{details.runtime_minutes} min passa do limite de "
-                            f"{night.max_runtime_minutes} min"
-                        )
+                else:
+                    fits_context = False
+                    context_reasons.append(
+                        f"{details.runtime_minutes} min passa do limite de "
+                        f"{night.max_runtime_minutes} min"
+                    )
             if preferred_genres and details is not None:
                 movie_genres = {genre.name.casefold() for genre in details.genres}
                 matched_genres = [
