@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 
 import { followUser } from "@/app/features/actions";
-import { ExperienceShell, Panel, buttonClass, fieldClass } from "@/components/experience-shell";
+import { ExperienceShell, Panel, fieldClass } from "@/components/experience-shell";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { requireAccessToken } from "@/lib/auth.server";
 import { experienceApi } from "@/lib/experience.server";
 
@@ -15,7 +16,7 @@ export default async function SocialPage() {
       <Panel>
         <form action={followUser} className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <label className="flex-1 text-sm text-zinc-300">Seguir por username<input className={fieldClass} name="username" placeholder="username" required /></label>
-          <button className={buttonClass} type="submit">Seguir</button>
+          <SubmitButton className="rounded-xl" pendingLabel="Seguindo...">Seguir</SubmitButton>
         </form>
       </Panel>
       <div className="mt-6 space-y-4">
