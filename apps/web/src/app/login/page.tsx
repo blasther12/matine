@@ -7,6 +7,7 @@ import {
   signIn,
   signUp,
 } from "@/app/auth/actions";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Entrar" };
@@ -127,12 +128,13 @@ export default async function LoginPage({ searchParams }: Props) {
               placeholder="seu@email.com"
               required
             />
-            <button
-              className="rounded-xl border border-amber-300/30 px-4 py-3 text-sm font-semibold text-amber-100 transition hover:bg-amber-300/10"
-              type="submit"
+            <SubmitButton
+              className="rounded-xl"
+              pendingLabel="Reenviando..."
+              variant="secondary"
             >
               Reenviar confirmação
-            </button>
+            </SubmitButton>
           </div>
         </form>
       </section>
@@ -181,12 +183,12 @@ function AuthForm({
         />
       </label>
 
-      <button
-        className="w-full rounded-xl bg-amber-300 px-4 py-3 font-semibold text-zinc-950 transition hover:bg-amber-200"
-        type="submit"
+      <SubmitButton
+        className="w-full rounded-xl"
+        pendingLabel={title === "Entrar" ? "Entrando..." : "Criando conta..."}
       >
         {submit}
-      </button>
+      </SubmitButton>
     </form>
   );
 }
